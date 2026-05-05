@@ -4,6 +4,7 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
 import './styles/variables.css'
+import './styles/chat-neumorphism.css'
 import './styles/base.css'
 
 const app = createApp(App)

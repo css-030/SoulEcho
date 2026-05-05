@@ -24,7 +24,7 @@ export const WUXING_MAPPINGS: Record<WuxingType, WuxingMapping> = {
     emotion: 'anger',
     color: '#22c55e',
     modernNote: 'Mi',
-    description: '朝气蓬勃、兴发舒展'
+    description: '朝气蓬勃、舒展生发'
   },
   fire: {
     wuxing: 'fire',
@@ -33,7 +33,7 @@ export const WUXING_MAPPINGS: Record<WuxingType, WuxingMapping> = {
     emotion: 'joy',
     color: '#fb7185',
     modernNote: 'Sol',
-    description: '明快愉悦、活力四射'
+    description: '明快愉悦、温暖活力'
   },
   earth: {
     wuxing: 'earth',
@@ -42,7 +42,7 @@ export const WUXING_MAPPINGS: Record<WuxingType, WuxingMapping> = {
     emotion: 'thought',
     color: '#fde68a',
     modernNote: 'Do',
-    description: '清静幽雅、淳厚庄重'
+    description: '平稳厚重、安定承托'
   },
   metal: {
     wuxing: 'metal',
@@ -51,7 +51,7 @@ export const WUXING_MAPPINGS: Record<WuxingType, WuxingMapping> = {
     emotion: 'sadness',
     color: '#cbd5e1',
     modernNote: 'Re',
-    description: '铿锵宏伟、高亢有力'
+    description: '清润开阔、收敛安宁'
   },
   water: {
     wuxing: 'water',
@@ -60,6 +60,6 @@ export const WUXING_MAPPINGS: Record<WuxingType, WuxingMapping> = {
     emotion: 'fear',
     color: '#bfdbfe',
     modernNote: 'La',
-    description: '苍凉哀伤、深远透彻'
+    description: '沉静深远、安定下行'
   }
 }
