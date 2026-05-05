@@ -3,9 +3,12 @@ import { nextTick, onMounted, ref, watch } from 'vue'
 
 import MessageBubble from '@/components/chat/MessageBubble.vue'
 import MessageInput from '@/components/chat/MessageInput.vue'
+import PlayerBar from '@/components/player/PlayerBar.vue'
 import { useChat } from '@/composables/useChat'
+import { usePlayerStore } from '@/stores/player'
 
 const { chatStore } = useChat()
+const playerStore = usePlayerStore()
 const messageListRef = ref<HTMLElement | null>(null)
 
 async function scrollToBottom(): Promise<void> {
@@ -18,6 +21,10 @@ async function scrollToBottom(): Promise<void> {
 async function handleSubmit(): Promise<void> {
   await chatStore.sendMessage(chatStore.inputText)
   await scrollToBottom()
+}
+
+async function playDailyBgm(): Promise<void> {
+  await playerStore.playPlaylistById('daily')
 }
 
 watch(
@@ -57,6 +64,9 @@ onMounted(() => {
 
       <MessageInput v-model="chatStore.inputText" :disabled="chatStore.isMomoTyping" @submit="handleSubmit" />
     </section>
+
+    <button class="chat-view__music-demo" type="button" @click="playDailyBgm">测试 YouTube 播放</button>
+    <PlayerBar />
   </main>
 </template>
 
@@ -119,6 +129,33 @@ onMounted(() => {
 
 .chat-view__status.is-typing {
   color: var(--color-accent);
+}
+
+.chat-view__music-demo {
+  position: fixed;
+  right: calc(var(--space-lg) + 3.75rem);
+  bottom: var(--space-lg);
+  z-index: 29;
+  min-height: 3rem;
+  padding: 0 var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 800;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.chat-view__music-demo:hover {
+  background: color-mix(in srgb, var(--color-primary) 32%, var(--bg-card));
+  color: var(--text-primary);
+  transform: translateY(-1px);
 }
 
 .chat-view__messages {
@@ -192,6 +229,10 @@ onMounted(() => {
     scroll-behavior: auto;
   }
 
+  .chat-view__music-demo {
+    transition: none;
+  }
+
   .chat-view__typing span {
     animation: none;
   }
@@ -214,6 +255,12 @@ onMounted(() => {
   .chat-view__messages {
     padding-right: var(--space-xs);
     padding-left: var(--space-xs);
+  }
+
+  .chat-view__music-demo {
+    right: calc(var(--space-md) + 3.5rem);
+    bottom: var(--space-md);
+    padding: 0 var(--space-sm);
   }
 
   .chat-view__title {

@@ -10,6 +10,7 @@ export interface Track {
   duration: number
   thumbnailUrl?: string
   youtubeId?: string
+  youtubePlaylistId?: string
   neteaseId?: string
   wuxingTag?: WuxingType
   playUrl?: string
