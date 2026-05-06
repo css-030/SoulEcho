@@ -7,6 +7,7 @@ const playerStore = usePlayerStore()
 const audioElement = ref<HTMLAudioElement | null>(null)
 
 const playUrl = computed(() => playerStore.currentTrack?.playUrl ?? '')
+const coverUrl = computed(() => playerStore.currentTrack?.thumbnailUrl ?? '')
 
 watch(
   playUrl,
@@ -99,8 +100,8 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="netease-player">
-    <div class="netease-player__badge">疗愈中 · 网易云</div>
-    <div class="netease-player__disc" aria-hidden="true">
+    <img v-if="coverUrl" class="netease-player__cover" :src="coverUrl" alt="" />
+    <div v-else class="netease-player__disc" aria-hidden="true">
       <span class="netease-player__note">♪</span>
     </div>
     <audio
@@ -129,11 +130,13 @@ onBeforeUnmount(() => {
   box-shadow: var(--shadow-card);
 }
 
-.netease-player__badge {
-  align-self: end;
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-  font-weight: 800;
+.netease-player__cover {
+  width: min(100%, 8.4375rem);
+  aspect-ratio: 1;
+  border: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 0 0.75rem color-mix(in srgb, var(--color-accent) 8%, transparent);
+  object-fit: cover;
 }
 
 .netease-player__disc {

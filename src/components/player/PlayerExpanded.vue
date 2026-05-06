@@ -84,8 +84,13 @@ onMounted(() => {
 
     <div class="player-expanded__content">
       <div class="player-expanded__topline">
-        <span class="player-expanded__source">{{ sourceLabel }}</span>
-        <span v-if="wuxingLabel" class="player-expanded__wuxing">{{ wuxingLabel }}</span>
+        <div class="player-expanded__meta">
+          <span class="player-expanded__source">{{ sourceLabel }}</span>
+          <span v-if="wuxingLabel" class="player-expanded__wuxing">{{ wuxingLabel }}</span>
+        </div>
+        <button class="player-expanded__favorite" type="button" :disabled="!playerStore.hasTrack" @click="playerStore.toggleFavorite">
+          {{ favoriteButtonLabel }}
+        </button>
       </div>
 
       <div>
@@ -140,10 +145,6 @@ onMounted(() => {
             @input="handleVolume"
           />
         </label>
-
-        <button class="player-expanded__button" type="button" :disabled="!playerStore.hasTrack" @click="playerStore.toggleFavorite">
-          {{ favoriteButtonLabel }}
-        </button>
       </div>
     </div>
   </section>
@@ -181,6 +182,7 @@ onMounted(() => {
 }
 
 .player-expanded__topline,
+.player-expanded__meta,
 .player-expanded__time,
 .player-expanded__controls,
 .player-expanded__volume {
@@ -192,6 +194,12 @@ onMounted(() => {
 .player-expanded__time {
   justify-content: space-between;
   gap: var(--space-sm);
+}
+
+.player-expanded__meta {
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-sm);
+  min-width: 0;
 }
 
 .player-expanded__source {
@@ -220,6 +228,33 @@ onMounted(() => {
     background var(--duration-fast) var(--ease-out),
     color var(--duration-fast) var(--ease-out),
     opacity var(--duration-fast) var(--ease-out);
+}
+
+.player-expanded__favorite {
+  min-width: 4.75rem;
+  min-height: 2.25rem;
+  padding: 0 var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--bg-card) 78%, var(--bg-primary));
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 900;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    opacity var(--duration-fast) var(--ease-out);
+}
+
+.player-expanded__favorite:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-primary) 32%, var(--bg-card));
+  color: var(--text-primary);
+}
+
+.player-expanded__favorite:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .player-expanded__button {
