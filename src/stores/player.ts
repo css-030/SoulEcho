@@ -2,7 +2,19 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
 import { musicRouter } from '@/services/music/MusicRouter'
+import { favoriteRepo } from '@/services/storage/repositories/FavoriteRepo'
+import type { FavoriteTrack } from '@/types/favorite'
 import type { Playlist, PlayerState, Track } from '@/types/music'
+import type { OrganType, WuxingType } from '@/types/wuxing'
+import { createId } from '@/utils/id'
+
+const WUXING_ORGAN_MAP: Record<WuxingType, OrganType> = {
+  wood: 'liver',
+  fire: 'heart',
+  earth: 'spleen',
+  metal: 'lung',
+  water: 'kidney'
+}
 
 export const usePlayerStore = defineStore('player', () => {
   const state = ref<PlayerState>('idle')
@@ -15,11 +27,24 @@ export const usePlayerStore = defineStore('player', () => {
   const volume = ref(0.8)
   const isTimelineAvailable = ref(false)
   const isHealingMode = ref(false)
-  const currentHealingOrgan = ref(undefined)
+  const currentHealingOrgan = ref<OrganType | undefined>(undefined)
   const isExpanded = ref(false)
   const isPlaylistEnd = ref(false)
+  const favoriteTracks = ref<FavoriteTrack[]>([])
 
   const hasTrack = computed(() => currentTrack.value !== null)
+  const isCurrentFavorite = computed(() => {
+    const track = currentTrack.value
+    if (!track) {
+      return false
+    }
+
+    return favoriteTracks.value.some((favorite) => {
+      const sameYoutube = track.youtubeId && favorite.youtubeId === track.youtubeId
+      const sameNetease = track.neteaseId && favorite.neteaseId === track.neteaseId
+      return Boolean(sameYoutube || sameNetease)
+    })
+  })
   const hasNextTrack = computed(() => {
     const playlist = currentPlaylist.value
     return playlist ? currentIndex.value < playlist.tracks.length - 1 : false
@@ -50,6 +75,27 @@ export const usePlayerStore = defineStore('player', () => {
   async function playPlaylistById(playlistId: string): Promise<void> {
     const playlist = await musicRouter.getPlaylist(playlistId, 'youtube')
     await play(playlist)
+  }
+
+  async function playNeteaseSearch(query: string): Promise<void> {
+    const tracks = await musicRouter.search({
+      scenario: 'healing',
+      searchQuery: query
+    })
+    await play(tracks[0])
+  }
+
+  async function startHealingSession(wuxing: WuxingType): Promise<void> {
+    isHealingMode.value = true
+    currentHealingOrgan.value = WUXING_ORGAN_MAP[wuxing]
+    isPlaylistEnd.value = false
+    const playlist = await musicRouter.getHealingPlaylist(wuxing)
+    await play(playlist)
+  }
+
+  function endHealingSession(): void {
+    isHealingMode.value = false
+    currentHealingOrgan.value = undefined
   }
 
   function pause(): void {
@@ -128,6 +174,60 @@ export const usePlayerStore = defineStore('player', () => {
     await next()
   }
 
+  async function initializeFavorites(): Promise<void> {
+    favoriteTracks.value = await favoriteRepo.loadAll()
+  }
+
+  async function toggleFavorite(): Promise<void> {
+    const track = currentTrack.value
+    if (!track) {
+      return
+    }
+
+    const existing = await favoriteRepo.findByTrackIds({
+      youtubeId: track.youtubeId,
+      neteaseId: track.neteaseId
+    })
+
+    if (existing) {
+      await favoriteRepo.delete(existing.id)
+      favoriteTracks.value = favoriteTracks.value.filter((favorite) => favorite.id !== existing.id)
+      return
+    }
+
+    const favorite: FavoriteTrack = {
+      id: createId('favorite'),
+      title: track.title,
+      artist: track.artist,
+      youtubeId: track.youtubeId,
+      neteaseId: track.neteaseId,
+      thumbnailUrl: track.thumbnailUrl,
+      addedAt: Date.now(),
+      wuxingTag: track.wuxingTag,
+      isHealingTrack: isHealingMode.value || track.source === 'netease'
+    }
+
+    await favoriteRepo.save(favorite)
+    favoriteTracks.value = [favorite, ...favoriteTracks.value]
+    void completeFavoriteCounterpart(favorite, track)
+  }
+
+  async function completeFavoriteCounterpart(favorite: FavoriteTrack, track: Track): Promise<void> {
+    const counterpart = await musicRouter.findCounterpart(track)
+    if (!counterpart) {
+      return
+    }
+
+    const updatedFavorite: FavoriteTrack = {
+      ...favorite,
+      youtubeId: favorite.youtubeId ?? counterpart.youtubeId,
+      neteaseId: favorite.neteaseId ?? counterpart.neteaseId
+    }
+
+    await favoriteRepo.save(updatedFavorite)
+    favoriteTracks.value = favoriteTracks.value.map((item) => (item.id === updatedFavorite.id ? updatedFavorite : item))
+  }
+
   async function setCurrentTrack(track: Track | null): Promise<void> {
     if (!track) {
       currentTrack.value = null
@@ -139,6 +239,9 @@ export const usePlayerStore = defineStore('player', () => {
     const playableTrack = await musicRouter.getPlayableTrack(track)
     currentTrack.value = playableTrack
     source.value = playableTrack.source
+    if (playableTrack.wuxingTag) {
+      currentHealingOrgan.value = WUXING_ORGAN_MAP[playableTrack.wuxingTag]
+    }
     duration.value = playableTrack.duration
     isTimelineAvailable.value = playableTrack.duration > 0 && playableTrack.duration <= 21600
     state.value = 'playing'
@@ -158,11 +261,16 @@ export const usePlayerStore = defineStore('player', () => {
     currentHealingOrgan,
     isExpanded,
     isPlaylistEnd,
+    favoriteTracks,
     hasTrack,
+    isCurrentFavorite,
     hasNextTrack,
     hasPreviousTrack,
     play,
     playPlaylistById,
+    playNeteaseSearch,
+    startHealingSession,
+    endHealingSession,
     pause,
     resume,
     next,
@@ -173,6 +281,8 @@ export const usePlayerStore = defineStore('player', () => {
     setPlaybackState,
     setProgress,
     setDuration,
-    handleTrackEnded
+    handleTrackEnded,
+    initializeFavorites,
+    toggleFavorite
   }
 })

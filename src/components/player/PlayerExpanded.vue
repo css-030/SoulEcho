@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 
+import NeteasePlayer from '@/components/player/NeteasePlayer.vue'
 import YouTubePlayer from '@/components/player/YouTubePlayer.vue'
 import { usePlayerStore } from '@/stores/player'
+import type { WuxingType } from '@/types/wuxing'
 
 const playerStore = usePlayerStore()
 
@@ -11,7 +13,34 @@ const trackArtist = computed(() => playerStore.currentTrack?.artist ?? 'SoulEcho
 const progressMax = computed(() => Math.max(playerStore.duration, playerStore.progress, 1))
 const progressPercent = computed(() => Math.min((playerStore.progress / progressMax.value) * 100, 100))
 const playButtonLabel = computed(() => (playerStore.state === 'playing' ? '暂停' : '播放'))
-const sourceLabel = computed(() => (playerStore.source === 'youtube' ? 'YouTube BGM' : '音乐陪伴'))
+const favoriteButtonLabel = computed(() => (playerStore.isCurrentFavorite ? '已收藏' : '收藏'))
+const sourceLabel = computed(() => {
+  if (playerStore.source === 'netease') {
+    return '疗愈中 · 网易云'
+  }
+
+  if (playerStore.source === 'fallback') {
+    return '兜底陪伴'
+  }
+
+  return 'YouTube BGM'
+})
+const wuxingLabel = computed(() => {
+  const wuxing = playerStore.currentTrack?.wuxingTag
+  if (!wuxing) {
+    return ''
+  }
+
+  const labels: Record<WuxingType, string> = {
+    wood: '角调 · 木 · 肝',
+    fire: '徵调 · 火 · 心',
+    earth: '宫调 · 土 · 脾',
+    metal: '商调 · 金 · 肺',
+    water: '羽调 · 水 · 肾'
+  }
+
+  return labels[wuxing]
+})
 
 function formatTime(seconds: number): string {
   const safeSeconds = Math.max(0, Math.floor(seconds))
@@ -38,17 +67,30 @@ function handleVolume(event: Event): void {
   const input = event.target as HTMLInputElement
   playerStore.setVolume(Number(input.value))
 }
+
+onMounted(() => {
+  void playerStore.initializeFavorites()
+})
 </script>
 
 <template>
   <section class="player-expanded" aria-label="音乐播放器">
-      <div class="player-expanded__media">
+    <div v-if="playerStore.source === 'youtube'" class="player-expanded__media">
       <YouTubePlayer v-if="playerStore.source === 'youtube'" />
+    </div>
+    <div v-else-if="playerStore.source === 'netease'" class="player-expanded__media">
+      <NeteasePlayer />
     </div>
 
     <div class="player-expanded__content">
       <div class="player-expanded__topline">
-        <span class="player-expanded__source">{{ sourceLabel }}</span>
+        <div class="player-expanded__meta">
+          <span class="player-expanded__source">{{ sourceLabel }}</span>
+          <span v-if="wuxingLabel" class="player-expanded__wuxing">{{ wuxingLabel }}</span>
+        </div>
+        <button class="player-expanded__favorite" type="button" :disabled="!playerStore.hasTrack" @click="playerStore.toggleFavorite">
+          {{ favoriteButtonLabel }}
+        </button>
       </div>
 
       <div>
@@ -140,6 +182,7 @@ function handleVolume(event: Event): void {
 }
 
 .player-expanded__topline,
+.player-expanded__meta,
 .player-expanded__time,
 .player-expanded__controls,
 .player-expanded__volume {
@@ -153,12 +196,24 @@ function handleVolume(event: Event): void {
   gap: var(--space-sm);
 }
 
+.player-expanded__meta {
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-sm);
+  min-width: 0;
+}
+
 .player-expanded__source {
   color: var(--text-secondary);
   font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0;
   text-transform: uppercase;
+}
+
+.player-expanded__wuxing {
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+  font-weight: 800;
 }
 
 .player-expanded__button {
@@ -173,6 +228,33 @@ function handleVolume(event: Event): void {
     background var(--duration-fast) var(--ease-out),
     color var(--duration-fast) var(--ease-out),
     opacity var(--duration-fast) var(--ease-out);
+}
+
+.player-expanded__favorite {
+  min-width: 4.75rem;
+  min-height: 2.25rem;
+  padding: 0 var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--bg-card) 78%, var(--bg-primary));
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 900;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    opacity var(--duration-fast) var(--ease-out);
+}
+
+.player-expanded__favorite:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-primary) 32%, var(--bg-card));
+  color: var(--text-primary);
+}
+
+.player-expanded__favorite:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .player-expanded__button {

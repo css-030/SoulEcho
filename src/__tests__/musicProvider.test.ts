@@ -1,8 +1,14 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { FallbackProvider } from '@/services/music/FallbackProvider'
 import { musicRouter } from '@/services/music/MusicRouter'
+import { NeteaseProvider } from '@/services/music/NeteaseProvider'
 import { YouTubeProvider } from '@/services/music/YouTubeProvider'
 import type { Track } from '@/types/music'
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 describe('YouTubeProvider', () => {
   it('returns a local fallback match by wuxing tag', async () => {
@@ -36,6 +42,10 @@ describe('MusicRouter', () => {
     expect(musicRouter.selectProvider({ type: 'daily-bgm' }).type).toBe('youtube')
   })
 
+  it('selects NetEase for healing', () => {
+    expect(musicRouter.selectProvider({ type: 'healing' }).type).toBe('netease')
+  })
+
   it('wraps a track with a lazy play URL', async () => {
     const track: Track = {
       id: 'demo-video',
@@ -49,5 +59,61 @@ describe('MusicRouter', () => {
     const playableTrack = await musicRouter.getPlayableTrack(track)
 
     expect(playableTrack.playUrl).toBe('youtube://demo-video')
+  })
+})
+
+describe('NeteaseProvider', () => {
+  it('maps search results to unified tracks', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        result: {
+          songs: [
+            {
+              id: 28815013,
+              name: '流水',
+              artists: [{ name: '龚一' }],
+              duration: 360000,
+              album: { picUrl: 'https://example.com/cover.jpg' }
+            }
+          ]
+        }
+      })
+    } as Response)
+
+    const provider = new NeteaseProvider('http://localhost:3000')
+    const tracks = await provider.search('流水')
+
+    expect(tracks[0]).toMatchObject({
+      id: '28815013',
+      source: 'netease',
+      title: '流水',
+      artist: '龚一',
+      duration: 360,
+      neteaseId: '28815013'
+    })
+  })
+
+  it('returns a NetEase play URL', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: [{ id: 28815013, url: 'https://music.example/track.mp3' }]
+      })
+    } as Response)
+
+    const provider = new NeteaseProvider('http://localhost:3000')
+
+    await expect(provider.getPlayUrl('28815013')).resolves.toBe('https://music.example/track.mp3')
+  })
+})
+
+describe('FallbackProvider', () => {
+  it('returns a playable ultimate fallback track', async () => {
+    const provider = new FallbackProvider()
+    const tracks = await provider.search('not found')
+
+    expect(tracks[0].source).toBe('fallback')
+    expect(tracks[0].youtubeId).toBeTruthy()
   })
 })
