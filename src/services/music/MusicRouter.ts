@@ -1,26 +1,52 @@
-import { YouTubeProvider } from '@/services/music/YouTubeProvider'
+import { FALLBACK_LIBRARY } from '@/data/fallback-library'
+import { FallbackProvider } from '@/services/music/FallbackProvider'
 import type { MusicProvider } from '@/services/music/MusicProvider'
+import { NeteaseProvider } from '@/services/music/NeteaseProvider'
+import { YouTubeProvider } from '@/services/music/YouTubeProvider'
 import type { MusicRecommendation, MusicSource, Playlist, Track } from '@/types/music'
+import type { SourceLock } from '@/types/settings'
+import type { WuxingType } from '@/types/wuxing'
 
 export interface PlayScenario {
   type: MusicRecommendation['scenario'] | 'fallback'
   lockedSource?: MusicSource
+  sourceLock?: SourceLock
 }
 
 export class MusicRouter {
   private readonly youtubeProvider: MusicProvider
+  private readonly neteaseProvider: MusicProvider
+  private readonly fallbackProvider: FallbackProvider
 
-  constructor(opts: { youtubeProvider?: MusicProvider } = {}) {
+  constructor(opts: { youtubeProvider?: MusicProvider; neteaseProvider?: MusicProvider; fallbackProvider?: FallbackProvider } = {}) {
     this.youtubeProvider = opts.youtubeProvider ?? new YouTubeProvider()
+    this.neteaseProvider = opts.neteaseProvider ?? new NeteaseProvider()
+    this.fallbackProvider = opts.fallbackProvider ?? new FallbackProvider()
   }
 
   selectProvider(scenario: PlayScenario): MusicProvider {
+    if (scenario.sourceLock === 'youtube_only') {
+      return this.youtubeProvider
+    }
+
+    if (scenario.sourceLock === 'netease_only') {
+      return this.neteaseProvider
+    }
+
     if (scenario.lockedSource === 'youtube') {
       return this.youtubeProvider
     }
 
-    if (scenario.type === 'daily-bgm' || scenario.type === 'user-requested' || scenario.type === 'fallback') {
-      return this.youtubeProvider
+    if (scenario.lockedSource === 'netease') {
+      return this.neteaseProvider
+    }
+
+    if (scenario.lockedSource === 'fallback' || scenario.type === 'fallback') {
+      return this.fallbackProvider
+    }
+
+    if (scenario.type === 'healing') {
+      return this.neteaseProvider
     }
 
     return this.youtubeProvider
@@ -29,23 +55,92 @@ export class MusicRouter {
   async search(recommendation: Pick<MusicRecommendation, 'scenario' | 'searchQuery' | 'targetWuxing'>): Promise<Track[]> {
     const provider = this.selectProvider({ type: recommendation.scenario })
     const query = recommendation.searchQuery ?? recommendation.targetWuxing ?? 'lofi relaxing music'
-    return provider.search(query)
+    return this.withFallback(() => provider.search(query), recommendation.targetWuxing)
   }
 
   async getPlayableTrack(track: Track): Promise<Track> {
+    if (track.source === 'fallback') {
+      const playUrl = track.playUrl ?? (await this.fallbackProvider.getPlayUrl(track.youtubeId ?? track.id))
+      return {
+        ...track,
+        id: track.youtubeId ?? track.id,
+        source: 'youtube',
+        playUrl
+      }
+    }
+
     const provider = this.selectProvider({ type: 'daily-bgm', lockedSource: track.source })
-    const playUrl = track.playUrl ?? (await provider.getPlayUrl(track.youtubeId ?? track.id))
-    return { ...track, playUrl }
+
+    try {
+      const playUrl = track.playUrl ?? (await provider.getPlayUrl(track.neteaseId ?? track.youtubeId ?? track.id))
+      return { ...track, playUrl }
+    } catch (error) {
+      console.debug('[MusicRouter] primary source failed, using fallback track', error)
+      const fallbackTrack = this.fallbackProvider.findSimilar(track.wuxingTag)
+      const playUrl = await this.youtubeProvider.getPlayUrl(fallbackTrack.youtubeId ?? fallbackTrack.id)
+      return {
+        ...fallbackTrack,
+        id: fallbackTrack.youtubeId ?? fallbackTrack.id,
+        source: 'youtube',
+        playUrl
+      }
+    }
   }
 
   async getPlaylist(playlistId: string, source: MusicSource = 'youtube'): Promise<Playlist> {
     const provider = this.selectProvider({ type: 'daily-bgm', lockedSource: source })
-    const tracks = await provider.getPlaylist(playlistId)
+    const tracks = await this.withFallback(() => provider.getPlaylist(playlistId))
     return {
       id: playlistId,
-      source,
+      source: tracks[0]?.source ?? source,
       title: this.getPlaylistTitle(playlistId),
       tracks
+    }
+  }
+
+  async getHealingPlaylist(wuxing: WuxingType): Promise<Playlist> {
+    const neteasePlaylist = FALLBACK_LIBRARY.netease.find((item) => item.wuxing === wuxing)
+    const playlistId = neteasePlaylist?.playlistId ?? wuxing
+    const tracks = await this.withFallback(() => this.neteaseProvider.getPlaylist(playlistId), wuxing)
+
+    return {
+      id: playlistId,
+      source: tracks[0]?.source ?? 'netease',
+      title: this.getPlaylistTitle(wuxing),
+      tracks: tracks.map((track) => ({ ...track, wuxingTag: track.wuxingTag ?? wuxing })),
+      isHealingPlaylist: true,
+      targetWuxing: wuxing
+    }
+  }
+
+  async playWithFallback(track: Track): Promise<Track> {
+    return this.getPlayableTrack(track)
+  }
+
+  async findCounterpart(track: Track): Promise<Track | null> {
+    const targetSource: MusicSource = track.source === 'youtube' ? 'netease' : 'youtube'
+    const provider = this.selectProvider({ type: 'user-requested', lockedSource: targetSource })
+
+    try {
+      const results = await provider.search(`${track.title} ${track.artist}`)
+      return results[0] ?? null
+    } catch (error) {
+      console.debug('[MusicRouter] counterpart search failed', error)
+      return null
+    }
+  }
+
+  private async withFallback<T>(action: () => Promise<T>, wuxing?: WuxingType): Promise<T> {
+    try {
+      const result = await action()
+      if (Array.isArray(result) && result.length === 0) {
+        throw new Error('Music provider returned no tracks')
+      }
+
+      return result
+    } catch (error) {
+      console.debug('[MusicRouter] provider unavailable, falling back', error)
+      return [this.fallbackProvider.findSimilar(wuxing)] as T
     }
   }
 

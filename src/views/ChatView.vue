@@ -27,6 +27,10 @@ async function playDailyBgm(): Promise<void> {
   await playerStore.playPlaylistById('daily')
 }
 
+async function playNeteaseDemo(): Promise<void> {
+  await playerStore.playNeteaseSearch('流水 龚一')
+}
+
 watch(
   () => [chatStore.orderedMessages.length, chatStore.isMomoTyping],
   async () => {
@@ -65,7 +69,10 @@ onMounted(() => {
       <MessageInput v-model="chatStore.inputText" :disabled="chatStore.isMomoTyping" @submit="handleSubmit" />
     </section>
 
-    <button class="chat-view__music-demo" type="button" @click="playDailyBgm">测试 YouTube 播放</button>
+    <div class="chat-view__music-demos" aria-label="播放器测试入口">
+      <button class="chat-view__music-demo" type="button" @click="playDailyBgm">测试 YouTube 播放</button>
+      <button class="chat-view__music-demo" type="button" @click="playNeteaseDemo">测试网易云播放</button>
+    </div>
     <PlayerBar />
   </main>
 </template>
@@ -131,11 +138,16 @@ onMounted(() => {
   color: var(--color-accent);
 }
 
-.chat-view__music-demo {
+.chat-view__music-demos {
   position: fixed;
   right: calc(var(--space-lg) + 3.75rem);
   bottom: var(--space-lg);
   z-index: 29;
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.chat-view__music-demo {
   min-height: 3rem;
   padding: 0 var(--space-md);
   border: 1px solid var(--color-border);
@@ -258,9 +270,14 @@ onMounted(() => {
   }
 
   .chat-view__music-demo {
+    padding: 0 var(--space-sm);
+  }
+
+  .chat-view__music-demos {
     right: calc(var(--space-md) + 3.5rem);
     bottom: var(--space-md);
-    padding: 0 var(--space-sm);
+    max-width: calc(100vw - 6rem);
+    overflow-x: auto;
   }
 
   .chat-view__title {
