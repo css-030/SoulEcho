@@ -195,13 +195,12 @@ export const usePlayerStore = defineStore('player', () => {
       return
     }
 
-    const counterpart = await musicRouter.findCounterpart(track)
     const favorite: FavoriteTrack = {
       id: createId('favorite'),
       title: track.title,
       artist: track.artist,
-      youtubeId: track.youtubeId ?? counterpart?.youtubeId,
-      neteaseId: track.neteaseId ?? counterpart?.neteaseId,
+      youtubeId: track.youtubeId,
+      neteaseId: track.neteaseId,
       thumbnailUrl: track.thumbnailUrl,
       addedAt: Date.now(),
       wuxingTag: track.wuxingTag,
@@ -210,6 +209,23 @@ export const usePlayerStore = defineStore('player', () => {
 
     await favoriteRepo.save(favorite)
     favoriteTracks.value = [favorite, ...favoriteTracks.value]
+    void completeFavoriteCounterpart(favorite, track)
+  }
+
+  async function completeFavoriteCounterpart(favorite: FavoriteTrack, track: Track): Promise<void> {
+    const counterpart = await musicRouter.findCounterpart(track)
+    if (!counterpart) {
+      return
+    }
+
+    const updatedFavorite: FavoriteTrack = {
+      ...favorite,
+      youtubeId: favorite.youtubeId ?? counterpart.youtubeId,
+      neteaseId: favorite.neteaseId ?? counterpart.neteaseId
+    }
+
+    await favoriteRepo.save(updatedFavorite)
+    favoriteTracks.value = favoriteTracks.value.map((item) => (item.id === updatedFavorite.id ? updatedFavorite : item))
   }
 
   async function setCurrentTrack(track: Track | null): Promise<void> {
