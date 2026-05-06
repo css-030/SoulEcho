@@ -43,6 +43,8 @@ ${wuxingRules}
 - 当前时间：${new Date().toLocaleString('zh-CN')}
 - 今日天气：${weather}
 - 当前音乐源：${context.currentMusicSource ?? 'none'}
+- 是否正在音乐疗愈中：${context.isHealingMode ? '是' : '否'}
+- 用户是否刚选择先聊聊/暂不放音乐：${context.healingConversationActive ? '是' : '否'}
 - 主动推荐频率：${context.settings.recommendFrequency}
 - 今天是否已经主动推荐过音乐：${context.alreadyRecommendedToday ? '是' : '否'}
 
@@ -89,12 +91,29 @@ function buildJsonInstruction(): string {
 - emotion_level 只能是 "neutral"、"mild_negative"、"strong_negative"
 - emotion_tag 只能是 "wood"、"fire"、"earth"、"metal"、"water" 或 null
 - should_recommend_music 和 should_offer_healing 只能是 true 或 false
-- should_recommend_music 为 false 时，music_recommendation 必须是 null`
+- should_recommend_music 为 false 时，music_recommendation 必须是 null
+- 用户只是轻度负面时，例如“我今天好烦”“有点累”“有点压力”，先温柔回应并记录情绪，不要立刻推送音乐卡片，should_recommend_music 设为 false
+- 只有用户明确要求“放音乐 / 听歌 / 播放 / play music”时，才把 should_recommend_music 设为 true；情绪为 strong_negative 时优先考虑 should_offer_healing，不要默认同时推荐音乐
+- 同一轮不要同时把 should_recommend_music 和 should_offer_healing 都设为 true；用户明确要音乐时优先音乐卡，用户只是情绪很糟时优先疗愈邀请
+- 如果“正在音乐疗愈中”或“用户刚选择先聊聊/暂不放音乐”为是，should_offer_healing 必须为 false；此时继续像陪聊/治疗师一样接住用户、追问具体委屈和压力来源，不要再次邀请开始疗愈
+- should_offer_healing 为 true 时，say 要直接写成疗愈邀请卡正文：先接住用户很糟的情绪，再自然提到“可以一边听点安静的音乐一边慢慢聊”；不要再写成一段独立回复，也不要把按钮文案写进 say
+- 如果 source 是 youtube 且用户要 R&B / soul / daily BGM，search_query 优先使用 live radio / radio / chill stream 类关键词，例如 "R&B soul live radio chill stream"，避免优先搜索 top songs / artist playlist mix`
+}
+
+function buildMusicTasteInstruction(): string {
+  return `## 音乐推荐时的说话方式
+- 用户明确要音乐时，say 要像一个有品味但不端着的人在聊天：先接住需求，再轻轻说一句你为什么挑这个方向。
+- 可以点到为止地聊风格、质感、节奏、氛围或品味点，例如“这组偏 mellow，鼓点不会太抢”、“更像夜里开着小灯听的 R&B”、“旋律线比较顺，不是那种用力煽情的歌单”。
+- 不要写客服腔、广告腔或工具腔：避免“让我为你找到”“为你带来”“希望它能”“我为你准备了”“营造一个氛围”。
+- 不要保证情绪效果，不要说教，不要把推荐理由写成疗效说明。
+- say 控制在 1-2 句；music_recommendation.reason 控制在 1 句，像卡片旁边的小注释，而不是宣传文案。`
 }
 
 export class PromptBuilder {
   buildChatSystemPrompt(context: ChatContext): string {
     return `${buildBasePrompt(context)}
+
+${buildMusicTasteInstruction()}
 
 ${buildJsonInstruction()}`
   }

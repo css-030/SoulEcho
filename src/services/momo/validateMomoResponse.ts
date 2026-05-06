@@ -28,7 +28,7 @@ function validateMusicRecommendation(value: unknown): MomoRawMusicRecommendation
 
   const scenario = value.scenario
   const source = value.source
-  const searchQuery = value.search_query
+  const searchQuery = value.search_query ?? value.query
   const reason = value.reason
 
   if (

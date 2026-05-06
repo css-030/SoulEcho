@@ -93,9 +93,12 @@ export const usePlayerStore = defineStore('player', () => {
     await play(playlist)
   }
 
-  function endHealingSession(): void {
+  function endHealingSession(options: { stopPlayback?: boolean } = {}): void {
     isHealingMode.value = false
     currentHealingOrgan.value = undefined
+    if (options.stopPlayback && currentTrack.value) {
+      state.value = 'paused'
+    }
   }
 
   function pause(): void {
@@ -115,6 +118,9 @@ export const usePlayerStore = defineStore('player', () => {
     if (!playlist) {
       isPlaylistEnd.value = true
       state.value = 'ended'
+      if (isHealingMode.value) {
+        endHealingSession()
+      }
       return
     }
 
@@ -127,6 +133,9 @@ export const usePlayerStore = defineStore('player', () => {
 
     isPlaylistEnd.value = true
     state.value = 'ended'
+    if (isHealingMode.value) {
+      endHealingSession()
+    }
   }
 
   async function previous(): Promise<void> {
@@ -172,6 +181,11 @@ export const usePlayerStore = defineStore('player', () => {
 
   async function handleTrackEnded(): Promise<void> {
     await next()
+  }
+
+  async function handlePlaybackError(): Promise<void> {
+    state.value = 'error'
+    isPlaylistEnd.value = false
   }
 
   async function initializeFavorites(): Promise<void> {
@@ -282,6 +296,7 @@ export const usePlayerStore = defineStore('player', () => {
     setProgress,
     setDuration,
     handleTrackEnded,
+    handlePlaybackError,
     initializeFavorites,
     toggleFavorite
   }

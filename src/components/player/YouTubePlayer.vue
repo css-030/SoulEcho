@@ -10,6 +10,9 @@ const containerId = `youtube-player-${Math.random().toString(36).slice(2)}`
 const player = ref<YT.Player | null>(null)
 const progressTimer = ref<number | null>(null)
 const isReady = ref(false)
+const pendingAutoplay = ref(false)
+const autoplayAttempts = ref(0)
+const isSyncingFromYouTube = ref(false)
 
 const videoId = computed(() => getYouTubeVideoId(playerStore.currentTrack))
 
@@ -36,11 +39,16 @@ watch(
 watch(
   () => playerStore.state,
   (state) => {
+    if (isSyncingFromYouTube.value) {
+      return
+    }
+
     if (!isReady.value || !player.value) {
       return
     }
 
     if (state === 'paused') {
+      pendingAutoplay.value = false
       player.value.pauseVideo()
     }
 
@@ -66,7 +74,11 @@ async function ensurePlayer(nextVideoId: string): Promise<void> {
   const youtube = await waitForYouTubeApi()
 
   if (player.value) {
+    stopProgressTimer()
+    playerStore.setProgress(0)
+    playerStore.setPlaybackState('loading')
     player.value.loadVideoById(nextVideoId)
+    queuePlaybackRequest()
     return
   }
 
@@ -98,22 +110,33 @@ function handleReady(event: YT.PlayerEvent): void {
   isReady.value = true
   event.target.setVolume(Math.round(playerStore.volume * 100))
   playerStore.setDuration(event.target.getDuration())
+  queuePlaybackRequest()
   startProgressTimer()
 }
 
 function handleStateChange(event: YT.OnStateChangeEvent): void {
   if (event.data === YT.PlayerState.PLAYING) {
-    playerStore.setPlaybackState('playing')
+    pendingAutoplay.value = false
+    setPlaybackStateFromYouTube('playing')
     playerStore.setDuration(event.target.getDuration())
     startProgressTimer()
   }
 
   if (event.data === YT.PlayerState.PAUSED) {
-    playerStore.setPlaybackState('paused')
+    if (pendingAutoplay.value) {
+      requestPlayback()
+      return
+    }
+
+    setPlaybackStateFromYouTube('paused')
   }
 
   if (event.data === YT.PlayerState.BUFFERING) {
-    playerStore.setPlaybackState('loading')
+    setPlaybackStateFromYouTube('loading')
+  }
+
+  if (event.data === YT.PlayerState.CUED || event.data === YT.PlayerState.UNSTARTED) {
+    requestPlayback()
   }
 
   if (event.data === YT.PlayerState.ENDED) {
@@ -123,8 +146,42 @@ function handleStateChange(event: YT.OnStateChangeEvent): void {
 }
 
 function handleError(): void {
-  playerStore.setPlaybackState('error')
-  void playerStore.handleTrackEnded()
+  pendingAutoplay.value = false
+  setPlaybackStateFromYouTube('error')
+  void playerStore.handlePlaybackError()
+}
+
+function setPlaybackStateFromYouTube(state: Parameters<typeof playerStore.setPlaybackState>[0]): void {
+  isSyncingFromYouTube.value = true
+  playerStore.setPlaybackState(state)
+  void nextTick(() => {
+    isSyncingFromYouTube.value = false
+  })
+}
+
+function queuePlaybackRequest(): void {
+  pendingAutoplay.value = true
+  autoplayAttempts.value = 0
+  requestPlayback()
+}
+
+function requestPlayback(): void {
+  window.setTimeout(() => {
+    if (!player.value || !pendingAutoplay.value || playerStore.state === 'paused' || playerStore.state === 'error') {
+      return
+    }
+
+    autoplayAttempts.value += 1
+    player.value.playVideo()
+
+    if (autoplayAttempts.value < 5) {
+      window.setTimeout(() => {
+        if (pendingAutoplay.value && playerStore.state !== 'playing') {
+          requestPlayback()
+        }
+      }, 180)
+    }
+  }, 0)
 }
 
 function startProgressTimer(): void {
@@ -148,6 +205,7 @@ function stopProgressTimer(): void {
 
 function destroyPlayer(): void {
   stopProgressTimer()
+  pendingAutoplay.value = false
   player.value?.destroy()
   player.value = null
   isReady.value = false

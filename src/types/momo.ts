@@ -19,6 +19,9 @@ export interface ChatContext {
   recentEmotions: EmotionRecord[]
   recentMessages: Message[]
   currentMusicSource: MusicSource | null
+  isHealingMode: boolean
+  healingConversationActive: boolean
+  healingMusicDeclinedAt: number | null
   alreadyRecommendedToday: boolean
 }
 
