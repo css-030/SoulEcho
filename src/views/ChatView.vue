@@ -14,6 +14,7 @@ const router = useRouter()
 const healingStore = useHealingStore()
 const playerStore = usePlayerStore()
 const messageListRef = ref<HTMLElement | null>(null)
+const isHealingTestStarting = ref(false)
 const healingButtonLabel = computed(() => (healingStore.isActive ? '进入疗愈空间' : '疗愈空间暂未开启'))
 
 async function scrollToBottom(): Promise<void> {
@@ -34,6 +35,19 @@ async function playDailyBgm(): Promise<void> {
 
 async function playNeteaseDemo(): Promise<void> {
   await playerStore.playNeteaseSearch('流水 龚一')
+}
+
+async function startHealingDemo(): Promise<void> {
+  if (isHealingTestStarting.value) {
+    return
+  }
+
+  isHealingTestStarting.value = true
+  try {
+    await playerStore.startHealingSession('wood')
+  } finally {
+    isHealingTestStarting.value = false
+  }
 }
 
 async function openHealingSpace(): Promise<void> {
@@ -75,7 +89,12 @@ onMounted(() => {
             :title="healingButtonLabel"
             @click="openHealingSpace"
           >
-            <span class="chat-view__healing-glyph" aria-hidden="true" />
+            <svg class="chat-view__healing-glyph" viewBox="0 0 24 24" aria-hidden="true">
+              <path class="chat-view__healing-petal is-left" d="M11.8 18.5C8.3 17.8 5.8 15.4 5 12.2c3.2.2 5.7 2 6.8 6.3Z" />
+              <path class="chat-view__healing-petal is-right" d="M12.2 18.5c3.5-.7 6-3.1 6.8-6.3-3.2.2-5.7 2-6.8 6.3Z" />
+              <path class="chat-view__healing-petal is-center" d="M12 18.6c-2.5-2.4-2.7-6.4 0-10.1 2.7 3.7 2.5 7.7 0 10.1Z" />
+              <path class="chat-view__healing-stem" d="M7.2 19.2h9.6" />
+            </svg>
           </button>
           <div class="chat-view__status" :class="{ 'is-typing': chatStore.isMomoTyping }">
             {{ chatStore.isMomoTyping ? '正在输入中...' : '在线陪伴中' }}
@@ -99,6 +118,9 @@ onMounted(() => {
     <div class="chat-view__music-demos" aria-label="播放器测试入口">
       <button class="chat-view__music-demo" type="button" @click="playDailyBgm">测试 YouTube 播放</button>
       <button class="chat-view__music-demo" type="button" @click="playNeteaseDemo">测试网易云播放</button>
+      <button class="chat-view__music-demo" type="button" :disabled="isHealingTestStarting" @click="startHealingDemo">
+        {{ isHealingTestStarting ? '准备疗愈中' : '测试疗愈入口' }}
+      </button>
     </div>
     <PlayerBar />
   </main>
@@ -175,19 +197,38 @@ onMounted(() => {
 }
 
 .chat-view__healing-glyph {
-  width: 1rem;
-  height: 1.35rem;
-  border: 2px solid currentColor;
-  border-top-color: transparent;
-  border-radius: 60% 60% 48% 48%;
+  width: 1.45rem;
+  height: 1.45rem;
+  overflow: visible;
   color: var(--text-tertiary);
+  fill: color-mix(in srgb, currentColor 14%, transparent);
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    filter var(--duration-fast) var(--ease-out);
 }
 
 .chat-view__healing-entry.is-active .chat-view__healing-glyph {
-  color: var(--color-accent);
-  box-shadow:
-    0 0 0.65rem color-mix(in srgb, var(--color-wood) 38%, transparent),
-    0 0 1rem color-mix(in srgb, var(--color-fire) 28%, transparent);
+  filter: drop-shadow(0 0 0.45rem color-mix(in srgb, var(--color-accent) 42%, transparent));
+}
+
+.chat-view__healing-entry.is-active .chat-view__healing-petal.is-left {
+  color: var(--color-wood);
+}
+
+.chat-view__healing-entry.is-active .chat-view__healing-petal.is-right {
+  color: var(--color-water);
+}
+
+.chat-view__healing-entry.is-active .chat-view__healing-petal.is-center {
+  color: var(--color-fire);
+}
+
+.chat-view__healing-entry.is-active .chat-view__healing-stem {
+  color: var(--color-earth);
 }
 
 .chat-view__eyebrow {
@@ -317,6 +358,11 @@ onMounted(() => {
     opacity: 1;
     transform: translateY(-3px);
   }
+}
+
+.chat-view__music-demo:disabled {
+  cursor: wait;
+  opacity: 0.68;
 }
 
 @keyframes healing-entry-pulse {
