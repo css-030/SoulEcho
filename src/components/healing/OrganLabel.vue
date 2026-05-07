@@ -65,6 +65,7 @@ const isLeftSide = computed(() => props.organ.labelPosition.x < 50)
   color: var(--text-primary);
   opacity: 1;
   transform: translate(-50%, -50%) scale(1.04);
+  animation: organ-label-float 5.6s var(--ease-breath) infinite;
 }
 
 .organ-label.is-left-side {
@@ -91,6 +92,12 @@ const isLeftSide = computed(() => props.organ.labelPosition.x < 50)
   backdrop-filter: var(--blur-card);
 }
 
+.organ-label.is-active .organ-label__card {
+  box-shadow:
+    var(--shadow-card),
+    0 0 1.4rem color-mix(in srgb, var(--organ-color) 20%, transparent);
+}
+
 .organ-label__card strong {
   color: inherit;
   font-size: 0.9rem;
@@ -102,6 +109,17 @@ const isLeftSide = computed(() => props.organ.labelPosition.x < 50)
   color: var(--text-secondary);
   font-size: 0.75rem;
   line-height: 1.5;
+}
+
+@keyframes organ-label-float {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+
+  50% {
+    transform: translate(-50%, calc(-50% - 0.35rem)) scale(1.04);
+  }
 }
 
 @media (max-width: 760px) {
@@ -116,6 +134,7 @@ const isLeftSide = computed(() => props.organ.labelPosition.x < 50)
 
 @media (prefers-reduced-motion: reduce) {
   .organ-label {
+    animation: none;
     transition: none;
   }
 }

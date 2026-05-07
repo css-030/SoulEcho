@@ -181,10 +181,14 @@ onUnmounted(() => {
   position: absolute;
   inset: 0;
   background:
+    linear-gradient(115deg, transparent 14%, color-mix(in srgb, var(--organ-glow-color) 9%, transparent) 34%, transparent 52%),
+    linear-gradient(245deg, transparent 18%, color-mix(in srgb, var(--text-primary) 6%, transparent) 46%, transparent 68%),
     radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--organ-color) 26%, transparent) 0%, transparent 30%),
     radial-gradient(circle at 50% 52%, color-mix(in srgb, var(--organ-glow-color) 18%, transparent) 0%, transparent 38%);
   opacity: 0.86;
   pointer-events: none;
+  transform: scale(1.05);
+  animation: healing-aura-flow 13s var(--ease-breath) infinite alternate;
 }
 
 .healing-space__shell,
@@ -293,6 +297,7 @@ onUnmounted(() => {
   border-radius: var(--radius-pill);
   background: var(--organ-color);
   box-shadow: 0 0 1rem var(--organ-glow-color);
+  animation: healing-dot-pulse 3.8s var(--ease-breath) infinite;
 }
 
 .healing-space__track h2 {
@@ -381,6 +386,36 @@ onUnmounted(() => {
   transform: translate(-50%, calc(-50% + 0.75rem));
 }
 
+@keyframes healing-aura-flow {
+  0% {
+    opacity: 0.72;
+    transform: scale(1.03) translate3d(-1.2rem, 0.4rem, 0);
+  }
+
+  50% {
+    opacity: 0.92;
+    transform: scale(1.08) translate3d(0.8rem, -0.6rem, 0);
+  }
+
+  100% {
+    opacity: 0.8;
+    transform: scale(1.05) translate3d(1.1rem, 0.6rem, 0);
+  }
+}
+
+@keyframes healing-dot-pulse {
+  0%,
+  100% {
+    opacity: 0.8;
+    transform: scale(0.92);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
 @media (max-width: 760px) {
   .healing-space {
     padding: var(--space-md);
@@ -404,8 +439,11 @@ onUnmounted(() => {
 @media (prefers-reduced-motion: reduce) {
   .healing-space__exit,
   .healing-space__bar span,
+  .healing-space__aura,
+  .healing-space__organ-dot,
   .healing-complete-enter-active,
   .healing-complete-leave-active {
+    animation: none;
     transition: none;
   }
 }

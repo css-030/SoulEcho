@@ -70,6 +70,17 @@ function isOrganActive(organ: OrganType): boolean {
         <span class="body-canvas__halo" />
       </div>
 
+      <div
+        v-if="isActive"
+        class="body-canvas__ripple-field"
+        :style="{ '--origin-x': `${activeOrgan.particleOrigin.x}%`, '--origin-y': `${activeOrgan.particleOrigin.y}%` }"
+        aria-hidden="true"
+      >
+        <span class="body-canvas__ripple is-first" />
+        <span class="body-canvas__ripple is-second" />
+        <span class="body-canvas__ripple is-third" />
+      </div>
+
       <EnergyParticles v-if="isActive" :origin="activeOrgan.particleOrigin" />
       <OrganLabel
         :organ="activeOrgan"
@@ -114,6 +125,38 @@ function isOrganActive(organ: OrganType): boolean {
   width: min(66vh, 42rem, 74vw);
   aspect-ratio: 1 / 1;
   isolation: isolate;
+}
+
+.body-canvas__stage::before {
+  position: absolute;
+  inset: 18% 24%;
+  z-index: 0;
+  border-radius: 46%;
+  background:
+    radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--organ-glow-color) 28%, transparent) 0%, transparent 54%),
+    linear-gradient(180deg, transparent, color-mix(in srgb, var(--organ-color) 12%, transparent), transparent);
+  content: '';
+  opacity: 0.58;
+  transform: scale(0.96);
+  animation: body-field-breathe 8s var(--ease-breath) infinite;
+}
+
+.body-canvas__stage::after {
+  position: absolute;
+  inset: 12% 18%;
+  z-index: 2;
+  border-radius: 48%;
+  background: linear-gradient(
+    110deg,
+    transparent 20%,
+    color-mix(in srgb, var(--text-primary) 10%, transparent) 44%,
+    transparent 62%
+  );
+  content: '';
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-24%) rotate(-4deg);
+  animation: body-light-sweep 9s var(--ease-out) infinite;
 }
 
 .body-canvas__base,
@@ -168,6 +211,38 @@ function isOrganActive(organ: OrganType): boolean {
 
 .body-canvas__organ.is-active .body-canvas__halo {
   animation: halo-pulse var(--duration-breathe) var(--ease-breath) infinite;
+}
+
+.body-canvas__ripple-field {
+  position: absolute;
+  left: var(--origin-x);
+  top: var(--origin-y);
+  z-index: 4;
+  width: clamp(4.5rem, 18%, 8rem);
+  aspect-ratio: 1;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.body-canvas__ripple {
+  position: absolute;
+  inset: 0;
+  border: 1px solid color-mix(in srgb, var(--organ-color) 62%, transparent);
+  border-radius: var(--radius-pill);
+  box-shadow:
+    0 0 0.85rem color-mix(in srgb, var(--organ-color) 28%, transparent),
+    inset 0 0 1rem color-mix(in srgb, var(--organ-glow-color) 18%, transparent);
+  opacity: 0;
+  transform: scale(0.18);
+  animation: organ-ripple 5.8s var(--ease-out) infinite;
+}
+
+.body-canvas__ripple.is-second {
+  animation-delay: 1.85s;
+}
+
+.body-canvas__ripple.is-third {
+  animation-delay: 3.7s;
 }
 
 .body-canvas__body-placeholder {
@@ -228,6 +303,37 @@ function isOrganActive(organ: OrganType): boolean {
   }
 }
 
+@keyframes body-field-breathe {
+  0%,
+  100% {
+    opacity: 0.42;
+    transform: scale(0.94);
+  }
+
+  50% {
+    opacity: 0.72;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes body-light-sweep {
+  0%,
+  62%,
+  100% {
+    opacity: 0;
+    transform: translateX(-24%) rotate(-4deg);
+  }
+
+  74% {
+    opacity: 0.4;
+  }
+
+  88% {
+    opacity: 0;
+    transform: translateX(24%) rotate(-4deg);
+  }
+}
+
 @keyframes halo-pulse {
   0%,
   100% {
@@ -241,6 +347,23 @@ function isOrganActive(organ: OrganType): boolean {
   }
 }
 
+@keyframes organ-ripple {
+  0% {
+    opacity: 0;
+    transform: scale(0.18);
+  }
+
+  16% {
+    opacity: 0.72;
+  }
+
+  72%,
+  100% {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
 @media (max-width: 760px) {
   .body-canvas__stage {
     width: min(92vw, 36rem);
@@ -250,7 +373,10 @@ function isOrganActive(organ: OrganType): boolean {
 @media (prefers-reduced-motion: reduce) {
   .body-canvas__organ,
   .body-canvas__organ.is-active,
-  .body-canvas__organ.is-active .body-canvas__halo {
+  .body-canvas__organ.is-active .body-canvas__halo,
+  .body-canvas__stage::before,
+  .body-canvas__stage::after,
+  .body-canvas__ripple {
     animation: none;
   }
 }
