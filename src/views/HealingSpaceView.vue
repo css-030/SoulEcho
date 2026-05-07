@@ -359,19 +359,79 @@ onUnmounted(() => {
 }
 
 .healing-space__bar {
+  position: relative;
   overflow: hidden;
   height: 0.45rem;
   border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--text-tertiary) 24%, transparent);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--text-primary) 8%, transparent), transparent 18% 82%, color-mix(in srgb, var(--text-primary) 8%, transparent)),
+    color-mix(in srgb, var(--text-tertiary) 24%, transparent);
+  box-shadow:
+    inset 0 0 0.35rem color-mix(in srgb, var(--bg-primary) 30%, transparent),
+    0 0 1.2rem color-mix(in srgb, var(--organ-glow-color) 12%, transparent);
+}
+
+.healing-space__bar::before {
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  background-image: repeating-linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--text-primary) 16%, transparent) 0 0.15rem,
+    transparent 0.15rem 0.8rem
+  );
+  content: '';
+  opacity: 0.22;
+  pointer-events: none;
+  animation: healing-progress-current 8s linear infinite;
 }
 
 .healing-space__bar span {
+  position: relative;
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: var(--organ-color);
-  box-shadow: 0 0 0.8rem var(--organ-glow-color);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--organ-color) 72%, var(--text-primary)), var(--organ-color) 48%, color-mix(in srgb, var(--organ-glow-color) 74%, var(--text-primary))),
+    repeating-linear-gradient(
+      115deg,
+      color-mix(in srgb, var(--text-primary) 28%, transparent) 0 0.35rem,
+      transparent 0.35rem 1rem
+    );
+  background-size:
+    100% 100%,
+    220% 100%;
+  box-shadow:
+    0 0 0.75rem var(--organ-glow-color),
+    0 0 1.6rem color-mix(in srgb, var(--organ-color) 42%, transparent);
   transition: width var(--duration-normal) var(--ease-out);
+  animation: healing-progress-flow 4.8s linear infinite;
+}
+
+.healing-space__bar span::after {
+  position: absolute;
+  right: -0.42rem;
+  top: 50%;
+  width: 0.85rem;
+  aspect-ratio: 1;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--text-primary) 62%, var(--organ-color));
+  box-shadow:
+    0 0 0.75rem var(--organ-color),
+    0 0 1.5rem var(--organ-glow-color);
+  content: '';
+  transform: translateY(-50%);
+}
+
+.healing-space__bar span::before {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--text-primary) 30%, transparent), transparent);
+  content: '';
+  opacity: 0.62;
+  transform: translateX(-100%);
+  animation: healing-progress-glint 3.6s var(--ease-out) infinite;
 }
 
 .healing-space__completion {
@@ -446,6 +506,32 @@ onUnmounted(() => {
   }
 }
 
+@keyframes healing-progress-current {
+  to {
+    background-position: 3rem 0;
+  }
+}
+
+@keyframes healing-progress-flow {
+  to {
+    background-position:
+      0 0,
+      4rem 0;
+  }
+}
+
+@keyframes healing-progress-glint {
+  0%,
+  42% {
+    transform: translateX(-100%);
+  }
+
+  78%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 @media (max-width: 760px) {
   .healing-space {
     padding: var(--space-md);
@@ -469,6 +555,8 @@ onUnmounted(() => {
 @media (prefers-reduced-motion: reduce) {
   .healing-space__exit,
   .healing-space__bar span,
+  .healing-space__bar span::before,
+  .healing-space__bar::before,
   .healing-space__aura,
   .healing-complete-enter-active,
   .healing-complete-leave-active {
