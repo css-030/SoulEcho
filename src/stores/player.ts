@@ -1,12 +1,16 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
+import { getAppEnv } from '@/services/config/env'
 import { musicRouter } from '@/services/music/MusicRouter'
 import { favoriteRepo } from '@/services/storage/repositories/FavoriteRepo'
+import { openWeatherService, WEATHER_UNAVAILABLE } from '@/services/weather/OpenWeatherService'
 import { useHealingStore } from '@/stores/healing'
+import { useSettingsStore } from '@/stores/settings'
 import type { FavoriteTrack } from '@/types/favorite'
 import { HEALING_ORGAN_BY_WUXING } from '@/types/healing'
 import type { Playlist, PlayerState, Track } from '@/types/music'
+import type { WeatherInfo } from '@/types/momo'
 import type { OrganType, WuxingType } from '@/types/wuxing'
 import { createId } from '@/utils/id'
 
@@ -79,13 +83,30 @@ export const usePlayerStore = defineStore('player', () => {
     await play(tracks[0])
   }
 
-  async function startHealingSession(wuxing: WuxingType): Promise<void> {
+  async function startHealingSession(
+    wuxing: WuxingType,
+    contextOverride?: {
+      now?: Date
+      weather?: WeatherInfo
+    }
+  ): Promise<void> {
     const healingStore = useHealingStore()
+    const settingsStore = useSettingsStore()
+    const env = getAppEnv()
     isHealingMode.value = true
     currentHealingOrgan.value = HEALING_ORGAN_BY_WUXING[wuxing]
     isPlaylistEnd.value = false
     healingStore.activate(wuxing)
-    const playlist = await musicRouter.getHealingPlaylist(wuxing)
+    const weather =
+      contextOverride?.weather ??
+      (await openWeatherService.getCurrentWeather({
+        apiKey: settingsStore.settings.openweatherApiKey || env.openweatherApiKey,
+        city: settingsStore.settings.openweatherDefaultCity || env.openweatherDefaultCity
+      }))
+    const playlist = await musicRouter.getHealingPlaylist(wuxing, {
+      now: contextOverride?.now ?? new Date(),
+      weather: weather || WEATHER_UNAVAILABLE
+    })
     await play(playlist)
   }
 

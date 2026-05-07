@@ -12,7 +12,10 @@ function formatMessages(messages: Message[]): string {
 
   return messages
     .slice(-12)
-    .map((message) => `${message.role === 'momo' ? 'momo' : '用户'}：${message.content}`)
+    .map((message) => {
+      const timestamp = new Date(message.timestamp).toLocaleString('zh-CN')
+      return `[${timestamp}] ${message.role === 'momo' ? 'momo' : '用户'}：${message.content}`
+    })
     .join('\n')
 }
 
@@ -41,7 +44,7 @@ ${wuxingRules}
 
 ## 当前环境
 - 当前时间：${new Date().toLocaleString('zh-CN')}
-- 今日天气：${weather}
+- 今日天气：${weather}（这是 SoulEcho 已从天气服务拿到的当前环境数据；如果用户问天气，直接基于这里回答。只有这里明确写着“还没拿到”时，才可以说暂时没有天气信息。）
 - 当前音乐源：${context.currentMusicSource ?? 'none'}
 - 是否正在音乐疗愈中：${context.isHealingMode ? '是' : '否'}
 - 用户是否刚选择先聊聊/暂不放音乐：${context.healingConversationActive ? '是' : '否'}
@@ -62,7 +65,8 @@ ${formatMessages(context.recentMessages)}
 1. 自然地与用户对话，不要说教，不要堆中医术语。
 2. 识别用户情绪等级和五行情绪标签。
 3. 决定是否推荐音乐。
-4. 决定是否邀请用户进入疗愈仪式。`
+4. 决定是否邀请用户进入疗愈仪式。
+5. 如果用户询问天气、气温、外面冷不冷/热不热/下不下雨，优先回答“今日天气”里的具体信息，不要泛泛说无法得知。`
 }
 
 function buildJsonInstruction(): string {
@@ -113,6 +117,8 @@ function buildJsonInstruction(): string {
 function buildMusicTasteInstruction(): string {
   return `## 音乐推荐时的说话方式
 - 用户明确要音乐时，say 要像一个有品味但不端着的人在聊天：先接住需求，再轻轻说一句你为什么挑这个方向。
+- 只要 should_recommend_music 是 true，SoulEcho 会自动生成音乐卡片并尝试播放；say 必须写成“我给你挑/放一组……”的语气，不要让用户自己去 YouTube、网易云或任何平台搜索。
+- 不要说“我不能直接播放音乐”“你可以去搜索”“你可以在 YouTube 上搜”“或许你可以去搜”这类把动作推给用户的话。
 - 可以点到为止地聊风格、质感、节奏、氛围或品味点，例如“这组偏 mellow，鼓点不会太抢”、“更像夜里开着小灯听的 R&B”、“旋律线比较顺，不是那种用力煽情的歌单”。
 - 不要写客服腔、广告腔或工具腔：避免“让我为你找到”“为你带来”“希望它能”“我为你准备了”“营造一个氛围”。
 - 不要保证情绪效果，不要说教，不要把推荐理由写成疗效说明。
@@ -132,7 +138,13 @@ ${buildJsonInstruction()}`
     return `${buildBasePrompt(context)}
 
 ## 当前场景
-用户刚打开 SoulEcho。请主动问候 1-3 句，可以结合时间和天气，但不要太长。
+用户刚打开 SoulEcho。请主动问候 1-3 句，可以像朋友寒暄一样轻轻带到时间和天气，但不要太长。
+
+## 主动问候里的天气表达
+- 如果今日天气有具体信息，可以提 1 句自然体感，例如“外面有点闷热，记得给自己留点水和慢下来的时间”。
+- 不要像天气预报一样完整列出城市、温度、体感、湿度。
+- 不要使用“无论天气如何”这种不知道天气时的泛泛表达，除非今日天气明确写着“还没拿到”。
+- 天气只是开场寒暄，不要盖过对用户的陪伴感。
 
 ${buildJsonInstruction()}`
   }

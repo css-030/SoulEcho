@@ -4,6 +4,7 @@ import { computed, ref } from 'vue'
 import { getAppEnv } from '@/services/config/env'
 import { MomoService } from '@/services/momo/MomoService'
 import { emotionRepo } from '@/services/storage/repositories/EmotionRepo'
+import { useSettingsStore } from '@/stores/settings'
 import type { DailyEmotion, EmotionRecord, GardenEmotionTag, MonthlyEmotionStats } from '@/types/emotion'
 import { buildDailyEmotions, buildMonthlyEmotionStats, isFutureDate } from '@/utils/emotionGarden'
 import { createId } from '@/utils/id'
@@ -70,7 +71,12 @@ export const useEmotionStore = defineStore('emotion', () => {
   }
 
   async function generateMonthlyReport(): Promise<void> {
-    const service = new MomoService(getAppEnv().openaiApiKey)
+    const settingsStore = useSettingsStore()
+    if (!settingsStore.isLoaded) {
+      await settingsStore.initialize()
+    }
+
+    const service = new MomoService(settingsStore.settings.openaiApiKey || getAppEnv().openaiApiKey)
     monthlyReport.value = await service.generateMonthlyReport(monthlyStats.value)
   }
 

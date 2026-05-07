@@ -159,11 +159,15 @@ function chunk<T>(items: T[], size: number): T[][] {
 
 export class YouTubeProvider implements MusicProvider {
   readonly type = 'youtube' as const
+  private readonly apiKey?: string
+
+  constructor(apiKey = getAppEnv().youtubeApiKey) {
+    this.apiKey = apiKey
+  }
 
   async search(query: string): Promise<Track[]> {
-    const env = getAppEnv()
-    if (env.youtubeApiKey) {
-      const apiResults = await this.searchYouTubeDataApi(toSearchQuery(query), env.youtubeApiKey)
+    if (this.apiKey) {
+      const apiResults = await this.searchYouTubeDataApi(toSearchQuery(query), this.apiKey)
       if (apiResults.length > 0) {
         return apiResults
       }

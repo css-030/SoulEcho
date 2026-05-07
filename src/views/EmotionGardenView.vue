@@ -88,7 +88,7 @@ onMounted(async () => {
     <section class="garden-view__shell">
       <header class="garden-view__header">
         <div>
-          <p class="garden-view__eyebrow">SoulEcho Garden</p>
+          <p class="garden-view__eyebrow">SoulEcho</p>
           <h1 class="garden-view__title">情绪花园</h1>
         </div>
 
@@ -192,7 +192,7 @@ onMounted(async () => {
 
 .garden-view__shell {
   display: grid;
-  width: min(100%, 68rem);
+  width: min(100%, var(--app-shell-width));
   margin: 0 auto;
   gap: var(--space-xl);
 }
@@ -206,6 +206,11 @@ onMounted(async () => {
   gap: var(--space-md);
 }
 
+.garden-view__header {
+  min-height: var(--app-header-min-height);
+  padding: var(--app-header-padding);
+}
+
 .garden-view__eyebrow,
 .garden-view__title,
 .garden-view__editor-title,
@@ -216,15 +221,15 @@ onMounted(async () => {
 
 .garden-view__eyebrow {
   color: var(--text-secondary);
-  font-size: 0.82rem;
-  font-weight: 800;
+  font-size: var(--app-brand-font-size);
+  font-weight: var(--app-brand-font-weight);
 }
 
 .garden-view__title {
-  font-family: var(--chat-title-font, serif);
-  font-size: clamp(2rem, 5vw, 3.25rem);
+  font-family: var(--app-title-font);
+  font-size: var(--app-title-size);
   letter-spacing: 0;
-  line-height: 1.12;
+  line-height: var(--app-title-line-height);
 }
 
 .garden-view__nav {

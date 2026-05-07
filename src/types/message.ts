@@ -1,4 +1,5 @@
 import type { MusicRecommendation } from './music'
+import type { WeatherInfo } from './momo'
 import type { OrganType, WuxingType } from './wuxing'
 
 export type MessageRole = 'user' | 'momo' | 'system'
@@ -17,6 +18,10 @@ export interface Message {
   healingTrigger?: {
     targetOrgan: OrganType
     targetWuxing: WuxingType
+    testContext?: {
+      now: number
+      weather: WeatherInfo
+    }
   }
   meta?: {
     emotionDetected?: EmotionLevel

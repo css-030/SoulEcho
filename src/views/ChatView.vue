@@ -7,14 +7,17 @@ import MessageInput from '@/components/chat/MessageInput.vue'
 import { useChat } from '@/composables/useChat'
 import { useHealingStore } from '@/stores/healing'
 import { usePlayerStore } from '@/stores/player'
+import { useSettingsStore } from '@/stores/settings'
 
 const { chatStore } = useChat()
 const router = useRouter()
 const healingStore = useHealingStore()
 const playerStore = usePlayerStore()
+const settingsStore = useSettingsStore()
 const messageListRef = ref<HTMLElement | null>(null)
 const isHealingTestStarting = ref(false)
 const healingButtonLabel = computed(() => (healingStore.isActive ? '进入疗愈空间' : '疗愈空间暂未开启'))
+const shouldShowApiGuide = computed(() => settingsStore.isLoaded && !settingsStore.hasOpenAiApiKey)
 
 async function scrollToBottom(): Promise<void> {
   await nextTick()
@@ -49,6 +52,11 @@ async function startHealingDemo(): Promise<void> {
   }
 }
 
+async function triggerHealingScenarioTest(): Promise<void> {
+  await chatStore.triggerHealingScenarioTest()
+  await scrollToBottom()
+}
+
 async function openHealingSpace(): Promise<void> {
   if (!healingStore.isActive) {
     return
@@ -79,6 +87,12 @@ onMounted(() => {
           <h1 class="chat-view__title">MOMO聊天室</h1>
         </div>
         <div class="chat-view__header-actions">
+          <RouterLink class="chat-view__settings-entry" to="/settings" aria-label="打开设置" title="打开设置">
+            <svg class="chat-view__settings-glyph" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
+              <path d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.04.04a2.15 2.15 0 0 1-3.04 3.04l-.04-.04a1.8 1.8 0 0 0-1.98-.36 1.8 1.8 0 0 0-1.1 1.66v.08a2.15 2.15 0 0 1-4.3 0v-.08a1.8 1.8 0 0 0-1.1-1.66 1.8 1.8 0 0 0-1.98.36l-.04.04a2.15 2.15 0 0 1-3.04-3.04l.04-.04A1.8 1.8 0 0 0 4.6 15a1.8 1.8 0 0 0-1.66-1.1h-.09a2.15 2.15 0 0 1 0-4.3h.08A1.8 1.8 0 0 0 4.6 8a1.8 1.8 0 0 0-.36-1.98l-.04-.04a2.15 2.15 0 0 1 3.04-3.04l.04.04A1.8 1.8 0 0 0 9.26 3.34a1.8 1.8 0 0 0 1.1-1.66V1.6a2.15 2.15 0 0 1 4.3 0v.08a1.8 1.8 0 0 0 1.1 1.66 1.8 1.8 0 0 0 1.98-.36l.04-.04a2.15 2.15 0 0 1 3.04 3.04l-.04.04A1.8 1.8 0 0 0 19.4 8c.27.66.91 1.09 1.66 1.1h.09a2.15 2.15 0 0 1 0 4.3h-.09A1.8 1.8 0 0 0 19.4 15Z" />
+            </svg>
+          </RouterLink>
           <RouterLink class="chat-view__garden-entry" to="/garden" aria-label="打开情绪花园" title="打开情绪花园">
             <svg class="chat-view__garden-glyph" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 20v-7" />
@@ -110,6 +124,14 @@ onMounted(() => {
       </header>
 
       <div ref="messageListRef" class="chat-view__messages">
+        <section v-if="shouldShowApiGuide" class="chat-view__api-guide" aria-label="OpenAI API Key 引导">
+          <div>
+            <strong>还没有配置 OpenAI API Key</strong>
+            <p>momo 现在会用兜底话术陪你，但还不能真正思考回复。去设置里填好 Key 后，下一句聊天就会生效。</p>
+          </div>
+          <RouterLink class="chat-view__api-guide-action" to="/settings">去设置</RouterLink>
+        </section>
+
         <MessageBubble v-for="message in chatStore.orderedMessages" :key="message.id" :message="message" />
 
         <div v-if="chatStore.isMomoTyping" class="chat-view__typing">
@@ -128,6 +150,9 @@ onMounted(() => {
       <button class="chat-view__music-demo" type="button" :disabled="isHealingTestStarting" @click="startHealingDemo">
         {{ isHealingTestStarting ? '准备疗愈中' : '测试疗愈入口' }}
       </button>
+      <button class="chat-view__music-demo" type="button" @click="triggerHealingScenarioTest">
+        测试爆炸情绪疗愈卡
+      </button>
     </div>
   </main>
 </template>
@@ -145,7 +170,7 @@ onMounted(() => {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   gap: var(--space-md);
-  width: min(100%, 58rem);
+  width: min(100%, var(--app-shell-width));
   height: calc(100vh - var(--space-xl) * 2);
   margin: 0 auto;
   border: var(--chat-shell-border);
@@ -159,7 +184,8 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-md);
-  padding: var(--space-lg) 0 var(--space-sm);
+  min-height: var(--app-header-min-height);
+  padding: var(--app-header-padding);
 }
 
 .chat-view__header-actions {
@@ -187,7 +213,8 @@ onMounted(() => {
     transform var(--duration-fast) var(--ease-out);
 }
 
-.chat-view__garden-entry {
+.chat-view__garden-entry,
+.chat-view__settings-entry {
   position: relative;
   display: grid;
   width: 2.75rem;
@@ -206,20 +233,59 @@ onMounted(() => {
     transform var(--duration-fast) var(--ease-out);
 }
 
-.chat-view__garden-entry:hover {
+.chat-view__garden-entry:hover,
+.chat-view__settings-entry:hover {
   background: color-mix(in srgb, var(--color-primary) 36%, var(--bg-card));
   color: var(--text-primary);
   transform: scale(1.05);
 }
 
-.chat-view__garden-glyph {
+.chat-view__garden-glyph,
+.chat-view__settings-glyph {
   width: 1.4rem;
   height: 1.4rem;
-  fill: color-mix(in srgb, currentColor 12%, transparent);
+  fill: none;
   stroke: currentColor;
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.chat-view__api-guide {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 32%, var(--color-border));
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-danger) 10%, var(--bg-card));
+  color: var(--text-primary);
+}
+
+.chat-view__api-guide strong {
+  display: block;
+  margin-bottom: var(--space-xs);
+}
+
+.chat-view__api-guide p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.chat-view__api-guide-action {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: var(--bg-primary);
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 .chat-view__healing-entry.is-active {
@@ -275,16 +341,16 @@ onMounted(() => {
 .chat-view__eyebrow {
   margin: 0 0 var(--space-xs);
   color: var(--text-secondary);
-  font-size: 0.875rem;
-  font-weight: 700;
+  font-size: var(--app-brand-font-size);
+  font-weight: var(--app-brand-font-weight);
 }
 
 .chat-view__title {
   margin: 0;
-  font-family: var(--chat-title-font);
-  font-size: 2.25rem;
+  font-family: var(--app-title-font);
+  font-size: var(--app-title-size);
   letter-spacing: var(--chat-title-spacing);
-  line-height: 1.2;
+  line-height: var(--app-title-line-height);
   text-transform: var(--chat-title-transform);
 }
 
@@ -306,7 +372,7 @@ onMounted(() => {
 .chat-view__music-demos {
   position: fixed;
   right: calc(var(--space-lg) + 3.75rem);
-  bottom: var(--space-lg);
+  bottom: calc(var(--space-lg) + 4.75rem);
   z-index: 29;
   display: flex;
   gap: var(--space-sm);
@@ -429,6 +495,7 @@ onMounted(() => {
   }
 
   .chat-view__garden-entry,
+  .chat-view__settings-entry,
   .chat-view__healing-entry {
     animation: none;
     transition: none;
@@ -463,19 +530,20 @@ onMounted(() => {
     padding-left: var(--space-xs);
   }
 
+  .chat-view__api-guide {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .chat-view__music-demo {
     padding: 0 var(--space-sm);
   }
 
   .chat-view__music-demos {
     right: calc(var(--space-md) + 3.5rem);
-    bottom: var(--space-md);
+    bottom: calc(var(--space-md) + 4.75rem);
     max-width: calc(100vw - 6rem);
     overflow-x: auto;
-  }
-
-  .chat-view__title {
-    font-size: 1.75rem;
   }
 }
 </style>

@@ -231,7 +231,7 @@ onUnmounted(() => {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   gap: var(--space-md);
-  width: min(100%, 58rem);
+  width: min(100%, var(--app-shell-width));
   height: calc(100vh - var(--space-xl) * 2);
   min-height: 38rem;
   margin: 0 auto;
@@ -242,7 +242,8 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-md);
-  min-height: 5.25rem;
+  min-height: var(--app-header-min-height);
+  padding: var(--app-header-padding);
 }
 
 .healing-space__eyebrow,
@@ -256,16 +257,17 @@ onUnmounted(() => {
 
 .healing-space__eyebrow {
   color: var(--text-secondary);
-  font-size: 0.875rem;
-  font-weight: 800;
+  font-size: var(--app-brand-font-size);
+  font-weight: var(--app-brand-font-weight);
 }
 
 .healing-space__title {
   margin-top: var(--space-xs);
   color: var(--text-primary);
-  font-size: clamp(1.75rem, 3vw, 2.35rem);
+  font-family: var(--app-title-font);
+  font-size: var(--app-title-size);
   letter-spacing: 0;
-  line-height: 1.2;
+  line-height: var(--app-title-line-height);
 }
 
 .healing-space__exit {

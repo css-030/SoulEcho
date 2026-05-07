@@ -67,8 +67,8 @@ const dominantMeta = computed(() => WUXING_OPTIONS.find((option) => option.value
 <style scoped>
 .monthly-summary {
   display: grid;
-  gap: var(--space-lg);
-  grid-template-columns: minmax(0, 1.08fr) minmax(16rem, 0.92fr);
+  gap: var(--space-md);
+  grid-template-columns: minmax(0, 1.05fr) minmax(15rem, 0.95fr);
 }
 
 .monthly-summary__stats,
@@ -82,7 +82,7 @@ const dominantMeta = computed(() => WUXING_OPTIONS.find((option) => option.value
 .monthly-summary__stats {
   display: grid;
   gap: var(--space-md);
-  padding: var(--space-lg);
+  padding: var(--space-md);
 }
 
 .monthly-summary__headline {
@@ -184,7 +184,7 @@ const dominantMeta = computed(() => WUXING_OPTIONS.find((option) => option.value
   display: flex;
   align-items: center;
   min-height: 10rem;
-  padding: var(--space-xl);
+  padding: var(--space-lg);
 }
 
 .monthly-summary__report-text {

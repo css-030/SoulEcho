@@ -25,7 +25,15 @@ async function handleStart(): Promise<void> {
   hasResponded.value = true
   isStarting.value = true
   try {
-    await playerStore.startHealingSession(props.trigger.targetWuxing)
+    await playerStore.startHealingSession(
+      props.trigger.targetWuxing,
+      props.trigger.testContext
+        ? {
+            now: new Date(props.trigger.testContext.now),
+            weather: props.trigger.testContext.weather
+          }
+        : undefined
+    )
     await chatStore.respondToHealingInvite('start', props.trigger.targetWuxing)
   } finally {
     isStarting.value = false
