@@ -4,7 +4,6 @@ import { useRouter } from 'vue-router'
 
 import MessageBubble from '@/components/chat/MessageBubble.vue'
 import MessageInput from '@/components/chat/MessageInput.vue'
-import PlayerBar from '@/components/player/PlayerBar.vue'
 import { useChat } from '@/composables/useChat'
 import { useHealingStore } from '@/stores/healing'
 import { usePlayerStore } from '@/stores/player'
@@ -122,7 +121,6 @@ onMounted(() => {
         {{ isHealingTestStarting ? '准备疗愈中' : '测试疗愈入口' }}
       </button>
     </div>
-    <PlayerBar />
   </main>
 </template>
 

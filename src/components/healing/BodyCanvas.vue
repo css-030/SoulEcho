@@ -81,7 +81,7 @@ function isOrganActive(organ: OrganType): boolean {
 
 <style scoped>
 .body-canvas {
-  --body-image-scale: 1.14;
+  --body-image-scale: 1.22;
   --organ-color: var(--color-wood);
   --organ-glow-color: var(--color-wood-glow);
   display: grid;
