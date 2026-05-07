@@ -148,13 +148,23 @@ onMounted(() => {
       </div>
 
       <div class="player-expanded__controls">
-        <button class="player-expanded__button" type="button" :disabled="!playerStore.hasPreviousTrack" @click="playerStore.previous">
+        <button
+          class="player-expanded__button"
+          type="button"
+          :disabled="playerStore.isHealingMode || !playerStore.hasPreviousTrack"
+          @click="playerStore.previous"
+        >
           上一首
         </button>
         <button class="player-expanded__button is-primary" type="button" :disabled="!playerStore.hasTrack" @click="togglePlayback">
           {{ playButtonLabel }}
         </button>
-        <button class="player-expanded__button" type="button" :disabled="!playerStore.hasNextTrack" @click="playerStore.next">
+        <button
+          class="player-expanded__button"
+          type="button"
+          :disabled="playerStore.isHealingMode || !playerStore.hasNextTrack"
+          @click="playerStore.next"
+        >
           下一首
         </button>
 

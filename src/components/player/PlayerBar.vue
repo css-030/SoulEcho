@@ -1,14 +1,20 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+
 import PlayerExpanded from '@/components/player/PlayerExpanded.vue'
 import { usePlayerStore } from '@/stores/player'
 
 const playerStore = usePlayerStore()
+const route = useRoute()
+const isImmersiveHealingRoute = computed(() => route.name === 'healing')
 </script>
 
 <template>
-  <PlayerExpanded v-show="playerStore.isExpanded && playerStore.hasTrack" />
+  <PlayerExpanded v-show="playerStore.isExpanded && playerStore.hasTrack && !isImmersiveHealingRoute" />
 
   <button
+    v-show="!isImmersiveHealingRoute"
     class="player-bar"
     :class="{ 'is-playing': playerStore.state === 'playing' }"
     type="button"

@@ -1,15 +1,20 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 
 import MessageBubble from '@/components/chat/MessageBubble.vue'
 import MessageInput from '@/components/chat/MessageInput.vue'
-import PlayerBar from '@/components/player/PlayerBar.vue'
 import { useChat } from '@/composables/useChat'
+import { useHealingStore } from '@/stores/healing'
 import { usePlayerStore } from '@/stores/player'
 
 const { chatStore } = useChat()
+const router = useRouter()
+const healingStore = useHealingStore()
 const playerStore = usePlayerStore()
 const messageListRef = ref<HTMLElement | null>(null)
+const isHealingTestStarting = ref(false)
+const healingButtonLabel = computed(() => (healingStore.isActive ? '进入疗愈空间' : '疗愈空间暂未开启'))
 
 async function scrollToBottom(): Promise<void> {
   await nextTick()
@@ -29,6 +34,28 @@ async function playDailyBgm(): Promise<void> {
 
 async function playNeteaseDemo(): Promise<void> {
   await playerStore.playNeteaseSearch('流水 龚一')
+}
+
+async function startHealingDemo(): Promise<void> {
+  if (isHealingTestStarting.value) {
+    return
+  }
+
+  isHealingTestStarting.value = true
+  try {
+    await playerStore.startHealingSession('wood')
+  } finally {
+    isHealingTestStarting.value = false
+  }
+}
+
+async function openHealingSpace(): Promise<void> {
+  if (!healingStore.isActive) {
+    return
+  }
+
+  healingStore.openImmersive()
+  await router.push('/healing')
 }
 
 watch(
@@ -51,8 +78,26 @@ onMounted(() => {
           <p class="chat-view__eyebrow">SoulEcho</p>
           <h1 class="chat-view__title">MOMO聊天室</h1>
         </div>
-        <div class="chat-view__status" :class="{ 'is-typing': chatStore.isMomoTyping }">
-          {{ chatStore.isMomoTyping ? '正在输入中...' : '在线陪伴中' }}
+        <div class="chat-view__header-actions">
+          <button
+            class="chat-view__healing-entry"
+            :class="{ 'is-active': healingStore.isActive }"
+            type="button"
+            :disabled="!healingStore.isActive"
+            :aria-label="healingButtonLabel"
+            :title="healingButtonLabel"
+            @click="openHealingSpace"
+          >
+            <svg class="chat-view__healing-glyph" viewBox="0 0 24 24" aria-hidden="true">
+              <path class="chat-view__healing-petal is-left" d="M11.8 18.5C8.3 17.8 5.8 15.4 5 12.2c3.2.2 5.7 2 6.8 6.3Z" />
+              <path class="chat-view__healing-petal is-right" d="M12.2 18.5c3.5-.7 6-3.1 6.8-6.3-3.2.2-5.7 2-6.8 6.3Z" />
+              <path class="chat-view__healing-petal is-center" d="M12 18.6c-2.5-2.4-2.7-6.4 0-10.1 2.7 3.7 2.5 7.7 0 10.1Z" />
+              <path class="chat-view__healing-stem" d="M7.2 19.2h9.6" />
+            </svg>
+          </button>
+          <div class="chat-view__status" :class="{ 'is-typing': chatStore.isMomoTyping }">
+            {{ chatStore.isMomoTyping ? '正在输入中...' : '在线陪伴中' }}
+          </div>
         </div>
       </header>
 
@@ -72,8 +117,10 @@ onMounted(() => {
     <div class="chat-view__music-demos" aria-label="播放器测试入口">
       <button class="chat-view__music-demo" type="button" @click="playDailyBgm">测试 YouTube 播放</button>
       <button class="chat-view__music-demo" type="button" @click="playNeteaseDemo">测试网易云播放</button>
+      <button class="chat-view__music-demo" type="button" :disabled="isHealingTestStarting" @click="startHealingDemo">
+        {{ isHealingTestStarting ? '准备疗愈中' : '测试疗愈入口' }}
+      </button>
     </div>
-    <PlayerBar />
   </main>
 </template>
 
@@ -105,6 +152,81 @@ onMounted(() => {
   justify-content: space-between;
   gap: var(--space-md);
   padding: var(--space-lg) 0 var(--space-sm);
+}
+
+.chat-view__header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.chat-view__healing-entry {
+  position: relative;
+  display: grid;
+  width: 2.75rem;
+  min-width: 2.75rem;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--text-tertiary) 32%, var(--color-border));
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--bg-card) 80%, var(--bg-primary));
+  box-shadow: var(--shadow-card);
+  cursor: not-allowed;
+  opacity: 0.58;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.chat-view__healing-entry.is-active {
+  border-color: color-mix(in srgb, var(--color-wood) 42%, var(--color-fire));
+  cursor: pointer;
+  opacity: 1;
+  animation: healing-entry-pulse 2s var(--ease-breath) infinite;
+}
+
+.chat-view__healing-entry.is-active:hover {
+  transform: scale(1.05);
+}
+
+.chat-view__healing-entry:disabled {
+  pointer-events: none;
+}
+
+.chat-view__healing-glyph {
+  width: 1.45rem;
+  height: 1.45rem;
+  overflow: visible;
+  color: var(--text-tertiary);
+  fill: color-mix(in srgb, currentColor 14%, transparent);
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    filter var(--duration-fast) var(--ease-out);
+}
+
+.chat-view__healing-entry.is-active .chat-view__healing-glyph {
+  filter: drop-shadow(0 0 0.45rem color-mix(in srgb, var(--color-accent) 42%, transparent));
+}
+
+.chat-view__healing-entry.is-active .chat-view__healing-petal.is-left {
+  color: var(--color-wood);
+}
+
+.chat-view__healing-entry.is-active .chat-view__healing-petal.is-right {
+  color: var(--color-water);
+}
+
+.chat-view__healing-entry.is-active .chat-view__healing-petal.is-center {
+  color: var(--color-fire);
+}
+
+.chat-view__healing-entry.is-active .chat-view__healing-stem {
+  color: var(--color-earth);
 }
 
 .chat-view__eyebrow {
@@ -236,12 +358,35 @@ onMounted(() => {
   }
 }
 
+.chat-view__music-demo:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+@keyframes healing-entry-pulse {
+  0%,
+  100% {
+    box-shadow: var(--shadow-card);
+  }
+
+  50% {
+    box-shadow:
+      var(--shadow-card),
+      0 0 1.2rem color-mix(in srgb, var(--color-accent) 28%, transparent);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .chat-view__messages {
     scroll-behavior: auto;
   }
 
   .chat-view__music-demo {
+    transition: none;
+  }
+
+  .chat-view__healing-entry {
+    animation: none;
     transition: none;
   }
 
@@ -262,6 +407,11 @@ onMounted(() => {
   .chat-view__header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .chat-view__header-actions {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .chat-view__messages {

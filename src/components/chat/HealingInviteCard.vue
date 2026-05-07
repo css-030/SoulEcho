@@ -98,7 +98,7 @@ async function handleLater(): Promise<void> {
   aspect-ratio: 1;
   place-items: center;
   border-radius: var(--radius-pill);
-  background: var(--healing-wuxing-color, var(--color-accent));
+  background: var(--color-wood);
   color: var(--bg-primary);
   font-size: 1.2rem;
   box-shadow: 0 0 0.85rem color-mix(in srgb, var(--healing-wuxing-color, var(--color-accent)) 48%, transparent);
@@ -146,8 +146,9 @@ async function handleLater(): Promise<void> {
 
 .healing-card__start {
   border: 0;
-  background: var(--healing-wuxing-color, var(--color-accent));
+  background: var(--color-wood);
   color: var(--bg-primary);
+  box-shadow: 0 0 0.85rem color-mix(in srgb, var(--color-wood) 28%, transparent);
 }
 
 .healing-card__later {
