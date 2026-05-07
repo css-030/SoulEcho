@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 import type { HealingOrgan } from '@/types/healing'
 
 interface Props {
@@ -6,13 +8,14 @@ interface Props {
   isActive: boolean
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
+const isLeftSide = computed(() => props.organ.labelPosition.x < 50)
 </script>
 
 <template>
   <aside
     class="organ-label"
-    :class="[{ 'is-active': isActive }, `is-${organ.wuxing}`]"
+    :class="[{ 'is-active': isActive, 'is-left-side': isLeftSide }, `is-${organ.wuxing}`]"
     :style="{ '--label-x': `${organ.labelPosition.x}%`, '--label-y': `${organ.labelPosition.y}%` }"
   >
     <span class="organ-label__pin" aria-hidden="true" />
@@ -62,6 +65,10 @@ defineProps<Props>()
   color: var(--text-primary);
   opacity: 1;
   transform: translate(-50%, -50%) scale(1.04);
+}
+
+.organ-label.is-left-side {
+  flex-direction: row-reverse;
 }
 
 .organ-label__pin {
