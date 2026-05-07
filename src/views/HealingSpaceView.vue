@@ -101,32 +101,36 @@ onUnmounted(() => {
   <main class="healing-space" :class="[healingStore.activeWuxingClass, { 'is-completed': isCompleted }]">
     <div class="healing-space__aura" aria-hidden="true" />
 
-    <header class="healing-space__header">
-      <div>
-        <p class="healing-space__eyebrow">沉浸式疗愈空间</p>
-        <h1 class="healing-space__title">{{ currentOrgan.label }}</h1>
-      </div>
-      <button class="healing-space__exit" type="button" @click="leaveHealingSpace({ completeSession: true })">退出</button>
-    </header>
-
-    <BodyCanvas :current-organ="healingStore.currentOrgan" :is-active="healingStore.isActive" />
-
-    <section class="healing-space__player" aria-label="当前疗愈音乐">
-      <div class="healing-space__track">
-        <span class="healing-space__organ-dot" aria-hidden="true" />
+    <section class="healing-space__shell">
+      <header class="healing-space__header">
         <div>
-          <h2>{{ trackTitle }}</h2>
-          <p>{{ trackArtist }}</p>
+          <p class="healing-space__eyebrow">SoulEcho</p>
+          <h1 class="healing-space__title">疗愈空间 · {{ currentOrgan.label }}</h1>
         </div>
+        <button class="healing-space__exit" type="button" @click="leaveHealingSpace({ completeSession: true })">退出</button>
+      </header>
+
+      <div class="healing-space__canvas-wrap">
+        <BodyCanvas :current-organ="healingStore.currentOrgan" :is-active="healingStore.isActive" />
       </div>
 
-      <div class="healing-space__progress">
-        <span>{{ formatTime(playerStore.progress) }}</span>
-        <div class="healing-space__bar" aria-hidden="true">
-          <span :style="{ width: progressPercent }" />
+      <section class="healing-space__player" aria-label="当前疗愈音乐">
+        <div class="healing-space__track">
+          <span class="healing-space__organ-dot" aria-hidden="true" />
+          <div>
+            <h2>{{ trackTitle }}</h2>
+            <p>{{ trackArtist }}</p>
+          </div>
         </div>
-        <span>{{ formatTime(progressMax) }}</span>
-      </div>
+
+        <div class="healing-space__progress">
+          <span>{{ formatTime(playerStore.progress) }}</span>
+          <div class="healing-space__bar" aria-hidden="true">
+            <span :style="{ width: progressPercent }" />
+          </div>
+          <span>{{ formatTime(progressMax) }}</span>
+        </div>
+      </section>
     </section>
 
     <Transition name="healing-complete">
@@ -146,10 +150,9 @@ onUnmounted(() => {
   display: grid;
   min-height: 100vh;
   min-height: 100dvh;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: var(--space-md);
+  place-items: center;
   overflow: hidden;
-  padding: var(--space-lg) var(--space-xl);
+  padding: var(--space-xl);
   background: var(--bg-gradient);
   color: var(--text-primary);
 }
@@ -184,11 +187,20 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
-.healing-space__header,
-.healing-space__player,
+.healing-space__shell,
 .healing-space__completion {
   position: relative;
   z-index: 10;
+}
+
+.healing-space__shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: var(--space-md);
+  width: min(100%, 58rem);
+  height: calc(100vh - var(--space-xl) * 2);
+  min-height: 38rem;
+  margin: 0 auto;
 }
 
 .healing-space__header {
@@ -196,6 +208,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-md);
+  min-height: 5.25rem;
 }
 
 .healing-space__eyebrow,
@@ -209,16 +222,16 @@ onUnmounted(() => {
 
 .healing-space__eyebrow {
   color: var(--text-secondary);
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   font-weight: 800;
 }
 
 .healing-space__title {
   margin-top: var(--space-xs);
   color: var(--text-primary);
-  font-size: clamp(1.65rem, 3vw, 2.6rem);
+  font-size: clamp(1.75rem, 3vw, 2.35rem);
   letter-spacing: 0;
-  line-height: 1.15;
+  line-height: 1.2;
 }
 
 .healing-space__exit {
@@ -243,13 +256,21 @@ onUnmounted(() => {
   transform: translateY(-1px);
 }
 
+.healing-space__canvas-wrap {
+  position: relative;
+  display: grid;
+  min-height: 0;
+  place-items: center;
+  overflow: visible;
+}
+
 .healing-space__player {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(14rem, 24rem);
   gap: var(--space-md);
   align-items: center;
-  width: min(100%, 62rem);
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
   padding: var(--space-md);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -363,6 +384,12 @@ onUnmounted(() => {
 @media (max-width: 760px) {
   .healing-space {
     padding: var(--space-md);
+  }
+
+  .healing-space__shell {
+    width: 100%;
+    height: calc(100vh - var(--space-md) * 2);
+    min-height: 0;
   }
 
   .healing-space__header {

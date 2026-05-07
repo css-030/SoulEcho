@@ -113,7 +113,7 @@ function isOrganActive(organ: OrganType): boolean {
 
 .body-canvas__stage {
   position: relative;
-  width: min(74vh, 48rem, 78vw);
+  width: min(66vh, 42rem, 74vw);
   aspect-ratio: 1 / 1;
   isolation: isolate;
 }
