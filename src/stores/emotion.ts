@@ -1,25 +1,19 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
+import { getAppEnv } from '@/services/config/env'
+import { MomoService } from '@/services/momo/MomoService'
 import { emotionRepo } from '@/services/storage/repositories/EmotionRepo'
-import type { EmotionRecord, MonthlyEmotionStats } from '@/types/emotion'
-import type { WuxingType } from '@/types/wuxing'
+import type { DailyEmotion, EmotionRecord, GardenEmotionTag, MonthlyEmotionStats } from '@/types/emotion'
+import { buildDailyEmotions, buildMonthlyEmotionStats, isFutureDate } from '@/utils/emotionGarden'
 import { createId } from '@/utils/id'
 
-const WUXING_TYPES: WuxingType[] = ['wood', 'fire', 'earth', 'metal', 'water']
-
-function emptyDistribution(): Record<WuxingType, number> {
-  return {
-    wood: 0,
-    fire: 0,
-    earth: 0,
-    metal: 0,
-    water: 0
-  }
+function getMonthPrefix(year: number, month: number): string {
+  return `${year}-${String(month).padStart(2, '0')}`
 }
 
-function getDominantWuxing(distribution: Record<WuxingType, number>): WuxingType {
-  return WUXING_TYPES.reduce((best, item) => (distribution[item] > distribution[best] ? item : best), 'wood')
+function createDateString(year: number, month: number, day: number): string {
+  return `${getMonthPrefix(year, month)}-${String(day).padStart(2, '0')}`
 }
 
 export const useEmotionStore = defineStore('emotion', () => {
@@ -27,32 +21,15 @@ export const useEmotionStore = defineStore('emotion', () => {
   const currentMonth = ref({ year: new Date().getFullYear(), month: new Date().getMonth() + 1 })
   const monthlyReport = ref<string | null>(null)
 
-  const monthlyStats = computed<MonthlyEmotionStats>(() => {
-    const distribution = emptyDistribution()
-    const daysByWuxing = new Map<string, WuxingType>()
-    const grouped = new Map<string, Record<WuxingType, number>>()
-
-    for (const record of recordsThisMonth.value) {
-      const dayDistribution = grouped.get(record.date) ?? emptyDistribution()
-      dayDistribution[record.wuxingTag] += 1
-      grouped.set(record.date, dayDistribution)
-    }
-
-    for (const [date, dayDistribution] of grouped) {
-      const dominant = getDominantWuxing(dayDistribution)
-      daysByWuxing.set(date, dominant)
-      distribution[dominant] += 1
-    }
-
-    return {
+  const monthlyStats = computed<MonthlyEmotionStats>(() =>
+    buildMonthlyEmotionStats({
       year: currentMonth.value.year,
       month: currentMonth.value.month,
-      totalDays: new Date(currentMonth.value.year, currentMonth.value.month, 0).getDate(),
-      recordedDays: daysByWuxing.size,
-      distribution,
-      dominantWuxing: getDominantWuxing(distribution)
-    }
-  })
+      records: recordsThisMonth.value
+    })
+  )
+
+  const dailyEmotions = computed<DailyEmotion[]>(() => buildDailyEmotions(recordsThisMonth.value))
 
   async function recordEmotion(record: Omit<EmotionRecord, 'id'> & { id?: string }): Promise<void> {
     const entity: EmotionRecord = {
@@ -62,7 +39,7 @@ export const useEmotionStore = defineStore('emotion', () => {
 
     await emotionRepo.save(entity)
 
-    if (entity.date.startsWith(`${currentMonth.value.year}-${String(currentMonth.value.month).padStart(2, '0')}`)) {
+    if (entity.date.startsWith(getMonthPrefix(currentMonth.value.year, currentMonth.value.month))) {
       recordsThisMonth.value = [...recordsThisMonth.value, entity].sort((a, b) => a.timestamp - b.timestamp)
     }
   }
@@ -77,13 +54,46 @@ export const useEmotionStore = defineStore('emotion', () => {
     recordsThisMonth.value = recordsThisMonth.value.map((record) => (record.id === id ? { ...record, ...updates } : record))
   }
 
+  async function correctDailyEmotion(date: string, wuxingTag: GardenEmotionTag, note?: string): Promise<void> {
+    if (isFutureDate(date)) {
+      return
+    }
+
+    await recordEmotion({
+      date,
+      timestamp: Date.now(),
+      wuxingTag,
+      intensity: 1,
+      source: 'manual',
+      note
+    })
+  }
+
+  async function generateMonthlyReport(): Promise<void> {
+    const service = new MomoService(getAppEnv().openaiApiKey)
+    monthlyReport.value = await service.generateMonthlyReport(monthlyStats.value)
+  }
+
+  function getDailyEmotion(date: string): DailyEmotion | undefined {
+    return dailyEmotions.value.find((day) => day.date === date)
+  }
+
+  function getDateForDay(day: number): string {
+    return createDateString(currentMonth.value.year, currentMonth.value.month, day)
+  }
+
   return {
     recordsThisMonth,
     currentMonth,
+    dailyEmotions,
     monthlyStats,
     monthlyReport,
     recordEmotion,
     loadMonth,
-    updateRecord
+    updateRecord,
+    correctDailyEmotion,
+    generateMonthlyReport,
+    getDailyEmotion,
+    getDateForDay
   }
 })

@@ -9,6 +9,7 @@ describe('momo response validation and normalization', () => {
       say: '我在这里。',
       emotion_level: 'mild_negative',
       emotion_tag: 'fire',
+      garden_emotion: 'fire',
       should_recommend_music: true,
       should_offer_healing: false,
       music_recommendation: {
@@ -26,6 +27,7 @@ describe('momo response validation and normalization', () => {
       say: '我在这里。',
       emotionDetected: 'mild_negative',
       emotionTag: 'fire',
+      gardenEmotion: 'fire',
       shouldRecommendMusic: true,
       shouldOfferHealing: false,
       musicRecommendation: {
@@ -35,6 +37,36 @@ describe('momo response validation and normalization', () => {
         targetWuxing: 'fire'
       }
     })
+  })
+
+  it('normalizes balanced and joyful garden emotions from natural chat inference', () => {
+    const balanced = normalizeMomoResponse(
+      validateMomoResponse({
+        say: '听起来今天过得挺稳的。',
+        emotion_level: 'neutral',
+        emotion_tag: null,
+        garden_emotion: 'balanced',
+        should_recommend_music: false,
+        should_offer_healing: false,
+        music_recommendation: null
+      })
+    )
+
+    const joyful = normalizeMomoResponse(
+      validateMomoResponse({
+        say: '这份开心很轻盈。',
+        emotion_level: 'neutral',
+        emotion_tag: null,
+        garden_emotion: 'joyful',
+        should_recommend_music: false,
+        should_offer_healing: false,
+        music_recommendation: null
+      })
+    )
+
+    expect(balanced.gardenEmotion).toBe('balanced')
+    expect(joyful.gardenEmotion).toBe('joyful')
+    expect(balanced.emotionTag).toBeUndefined()
   })
 
   it('falls invalid emotion_level back to neutral', () => {

@@ -1,4 +1,4 @@
-import type { EmotionRecord } from './emotion'
+import type { EmotionRecord, GardenEmotionTag } from './emotion'
 import type { EmotionLevel, Message } from './message'
 import type { MusicRecommendation, MusicSource } from './music'
 import type { UserProfile, UserSettings } from './settings'
@@ -37,6 +37,7 @@ export interface MomoRawResponse {
   say: string
   emotion_level: EmotionLevel
   emotion_tag: WuxingType | null
+  garden_emotion: GardenEmotionTag | null
   should_recommend_music: boolean
   should_offer_healing: boolean
   music_recommendation: MomoRawMusicRecommendation | null
@@ -46,6 +47,7 @@ export interface MomoResponse {
   say: string
   emotionDetected: EmotionLevel
   emotionTag?: WuxingType
+  gardenEmotion?: GardenEmotionTag
   shouldRecommendMusic: boolean
   shouldOfferHealing: boolean
   musicRecommendation?: MusicRecommendation

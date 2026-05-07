@@ -1,10 +1,12 @@
 import type { WuxingType } from './wuxing'
 
+export type GardenEmotionTag = WuxingType | 'balanced' | 'joyful'
+
 export interface EmotionRecord {
   id: string
   date: string
   timestamp: number
-  wuxingTag: WuxingType
+  wuxingTag: GardenEmotionTag
   intensity: number
   source: 'auto' | 'manual'
   contextMessageIds?: string[]
@@ -13,7 +15,7 @@ export interface EmotionRecord {
 
 export interface DailyEmotion {
   date: string
-  dominantWuxing: WuxingType
+  dominantWuxing: GardenEmotionTag
   records: EmotionRecord[]
   iconKey: string
   iconLabel: string
@@ -24,6 +26,6 @@ export interface MonthlyEmotionStats {
   month: number
   totalDays: number
   recordedDays: number
-  distribution: Record<WuxingType, number>
-  dominantWuxing: WuxingType
+  distribution: Record<GardenEmotionTag, number>
+  dominantWuxing: GardenEmotionTag
 }
