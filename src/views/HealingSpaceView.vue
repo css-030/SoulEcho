@@ -21,8 +21,27 @@ const isExiting = ref(false)
 const currentOrgan = computed(() => HEALING_ORGANS.find((organ) => organ.organ === healingStore.currentOrgan) ?? HEALING_ORGANS[0])
 const trackTitle = computed(() => playerStore.currentTrack?.title ?? '疗愈音乐准备中')
 const trackArtist = computed(() => playerStore.currentTrack?.artist ?? 'momo 陪你慢慢听')
-const progressMax = computed(() => Math.max(playerStore.duration, playerStore.progress, 1))
-const progressPercent = computed(() => `${Math.min((playerStore.progress / progressMax.value) * 100, 100)}%`)
+const healingTotalDuration = computed(() => {
+  const playlist = playerStore.currentPlaylist
+  if (!playlist || playlist.tracks.length === 0) {
+    return Math.max(playerStore.duration, playerStore.progress, 1)
+  }
+
+  const playlistDuration = playlist.tracks.reduce((total, track) => total + Math.max(track.duration, 0), 0)
+  return Math.max(playlistDuration, playerStore.duration, playerStore.progress, 1)
+})
+const healingProgress = computed(() => {
+  const playlist = playerStore.currentPlaylist
+  if (!playlist || playlist.tracks.length === 0) {
+    return Math.min(playerStore.progress, healingTotalDuration.value)
+  }
+
+  const previousTrackDuration = playlist.tracks
+    .slice(0, playerStore.currentIndex)
+    .reduce((total, track) => total + Math.max(track.duration, 0), 0)
+  return Math.min(previousTrackDuration + playerStore.progress, healingTotalDuration.value)
+})
+const progressPercent = computed(() => `${Math.min((healingProgress.value / healingTotalDuration.value) * 100, 100)}%`)
 
 function formatTime(seconds: number): string {
   const safeSeconds = Math.max(0, Math.floor(seconds))
@@ -114,7 +133,7 @@ onUnmounted(() => {
         <BodyCanvas :current-organ="healingStore.currentOrgan" :is-active="healingStore.isActive" />
       </div>
 
-      <section class="healing-space__player" aria-label="当前疗愈音乐">
+      <section class="healing-space__player" aria-label="疗愈进度与当前音乐">
         <div class="healing-space__track">
           <span class="healing-space__organ-dot" aria-hidden="true" />
           <div>
@@ -124,11 +143,11 @@ onUnmounted(() => {
         </div>
 
         <div class="healing-space__progress">
-          <span>{{ formatTime(playerStore.progress) }}</span>
+          <span>{{ formatTime(healingProgress) }}</span>
           <div class="healing-space__bar" aria-hidden="true">
             <span :style="{ width: progressPercent }" />
           </div>
-          <span>{{ formatTime(progressMax) }}</span>
+          <span>{{ formatTime(healingTotalDuration) }}</span>
         </div>
       </section>
     </section>
