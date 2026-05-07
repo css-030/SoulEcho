@@ -172,8 +172,20 @@ onUnmounted(() => {
   place-items: center;
   overflow: hidden;
   padding: var(--space-xl);
-  background: var(--bg-gradient);
+  background:
+    linear-gradient(120deg, transparent 0 18%, color-mix(in srgb, var(--organ-glow-color) 14%, transparent) 32%, transparent 52%),
+    linear-gradient(245deg, color-mix(in srgb, var(--text-primary) 8%, transparent) 0 16%, transparent 38% 72%, color-mix(in srgb, var(--organ-color) 10%, transparent) 100%),
+    var(--bg-gradient);
+  background-position:
+    0% 48%,
+    100% 52%,
+    center;
+  background-size:
+    210% 210%,
+    190% 190%,
+    auto;
   color: var(--text-primary);
+  animation: healing-background-flow 22s var(--ease-breath) infinite alternate;
 }
 
 .healing-space.is-fire {
@@ -506,6 +518,29 @@ onUnmounted(() => {
   }
 }
 
+@keyframes healing-background-flow {
+  0% {
+    background-position:
+      0% 42%,
+      100% 58%,
+      center;
+  }
+
+  50% {
+    background-position:
+      54% 50%,
+      42% 48%,
+      center;
+  }
+
+  100% {
+    background-position:
+      100% 58%,
+      0% 42%,
+      center;
+  }
+}
+
 @keyframes healing-progress-current {
   to {
     background-position: 3rem 0;
@@ -553,6 +588,7 @@ onUnmounted(() => {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .healing-space,
   .healing-space__exit,
   .healing-space__bar span,
   .healing-space__bar span::before,
