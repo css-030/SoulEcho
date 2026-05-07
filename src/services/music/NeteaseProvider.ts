@@ -40,6 +40,10 @@ interface NeteasePlaylistResponse {
   }
 }
 
+interface NeteaseAlbumResponse {
+  songs?: NeteaseSong[]
+}
+
 function toSeconds(durationMs: number | undefined): number {
   return durationMs ? Math.round(durationMs / 1000) : 0
 }
@@ -78,7 +82,7 @@ export class NeteaseProvider implements MusicProvider {
   }
 
   async search(query: string): Promise<Track[]> {
-    const url = this.createUrl('/search')
+    const url = this.createUrl('/cloudsearch')
     url.searchParams.set('keywords', query)
     url.searchParams.set('limit', '10')
     url.searchParams.set('type', '1')
@@ -90,6 +94,7 @@ export class NeteaseProvider implements MusicProvider {
   async getPlayUrl(trackId: string): Promise<string> {
     const url = this.createUrl('/song/url')
     url.searchParams.set('id', trackId)
+    url.searchParams.set('br', '128000')
 
     const data = await this.fetchJson<NeteaseUrlResponse>(url)
     const playUrl = data.data?.find((item) => String(item.id) === trackId || item.url)?.url
@@ -101,11 +106,23 @@ export class NeteaseProvider implements MusicProvider {
   }
 
   async getPlaylist(playlistId: string): Promise<Track[]> {
+    if (playlistId.startsWith('album:')) {
+      return this.getAlbum(playlistId.slice('album:'.length))
+    }
+
     const url = this.createUrl('/playlist/detail')
     url.searchParams.set('id', playlistId)
 
     const data = await this.fetchJson<NeteasePlaylistResponse>(url)
     return (data.playlist?.tracks ?? []).map(mapSongToTrack).filter((track): track is Track => track !== null)
+  }
+
+  private async getAlbum(albumId: string): Promise<Track[]> {
+    const url = this.createUrl('/album')
+    url.searchParams.set('id', albumId)
+
+    const data = await this.fetchJson<NeteaseAlbumResponse>(url)
+    return (data.songs ?? []).map(mapSongToTrack).filter((track): track is Track => track !== null)
   }
 
   private createUrl(path: string): URL {
@@ -118,7 +135,16 @@ export class NeteaseProvider implements MusicProvider {
   }
 
   private async fetchJson<T>(url: URL): Promise<T> {
-    const response = await fetch(url)
+    const controller = new AbortController()
+    const timeout = globalThis.setTimeout(() => controller.abort(), 8000)
+
+    let response: Response
+    try {
+      response = await fetch(url, { signal: controller.signal })
+    } finally {
+      globalThis.clearTimeout(timeout)
+    }
+
     if (!response.ok) {
       throw new Error(`NetEase request failed with ${response.status}`)
     }

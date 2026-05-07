@@ -17,6 +17,7 @@ export interface UserSettings {
   neteaseApiUrl: string
   neteaseCookie?: string
   openweatherApiKey?: string
+  lastGreetedAt: number
 }
 
 export interface UserProfile {

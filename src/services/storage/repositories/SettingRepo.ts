@@ -14,7 +14,8 @@ export class SettingRepo {
       momoLength: 'medium',
       recommendFrequency: 'every_open',
       sourceLock: 'auto',
-      neteaseApiUrl: env.neteaseApiUrl
+      neteaseApiUrl: env.neteaseApiUrl,
+      lastGreetedAt: 0
     }
   }
 
@@ -25,7 +26,10 @@ export class SettingRepo {
     }
 
     const { id: _id, ...settings } = saved
-    return settings
+    return {
+      ...this.getDefault(),
+      ...settings
+    }
   }
 
   async save(settings: UserSettings): Promise<void> {

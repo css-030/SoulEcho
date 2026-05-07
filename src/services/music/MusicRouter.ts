@@ -101,13 +101,19 @@ export class MusicRouter {
   async getHealingPlaylist(wuxing: WuxingType): Promise<Playlist> {
     const neteasePlaylist = FALLBACK_LIBRARY.netease.find((item) => item.wuxing === wuxing)
     const playlistId = neteasePlaylist?.playlistId ?? wuxing
-    const tracks = await this.withFallback(() => this.neteaseProvider.getPlaylist(playlistId), wuxing)
+    const tracks = await this.withFallback(
+      async () => {
+        const playlistTracks = await this.neteaseProvider.getPlaylist(playlistId)
+        return this.resolvePlayableNeteaseTracks(playlistTracks.map((track) => ({ ...track, wuxingTag: track.wuxingTag ?? wuxing })))
+      },
+      wuxing
+    )
 
     return {
       id: playlistId,
       source: tracks[0]?.source ?? 'netease',
       title: this.getPlaylistTitle(wuxing),
-      tracks: tracks.map((track) => ({ ...track, wuxingTag: track.wuxingTag ?? wuxing })),
+      tracks,
       isHealingPlaylist: true,
       targetWuxing: wuxing
     }
@@ -115,6 +121,18 @@ export class MusicRouter {
 
   async playWithFallback(track: Track): Promise<Track> {
     return this.getPlayableTrack(track)
+  }
+
+  async getReliableFallbackTrack(wuxing?: WuxingType): Promise<Track> {
+    const fallbackTrack = this.fallbackProvider.findSimilar(wuxing)
+    const playUrl = await this.youtubeProvider.getPlayUrl(fallbackTrack.youtubeId ?? fallbackTrack.id)
+
+    return {
+      ...fallbackTrack,
+      id: fallbackTrack.youtubeId ?? fallbackTrack.id,
+      source: 'youtube',
+      playUrl
+    }
   }
 
   async findCounterpart(track: Track): Promise<Track | null> {
@@ -142,6 +160,37 @@ export class MusicRouter {
       console.debug('[MusicRouter] provider unavailable, falling back', error)
       return [this.fallbackProvider.findSimilar(wuxing)] as T
     }
+  }
+
+  private async resolvePlayableNeteaseTracks(tracks: Track[]): Promise<Track[]> {
+    const playableTracks: Track[] = []
+    const targetPlayableCount = 5
+
+    for (const track of tracks) {
+      if (track.source !== 'netease') {
+        playableTracks.push(track)
+        if (playableTracks.length >= targetPlayableCount) {
+          break
+        }
+        continue
+      }
+
+      try {
+        const playUrl = track.playUrl ?? (await this.neteaseProvider.getPlayUrl(track.neteaseId ?? track.id))
+        playableTracks.push({ ...track, playUrl })
+        if (playableTracks.length >= targetPlayableCount) {
+          break
+        }
+      } catch {
+        // Skip tracks whose NetEase play URL is unavailable and keep the session on NetEase when possible.
+      }
+    }
+
+    if (playableTracks.length > 0) {
+      return playableTracks
+    }
+
+    throw new Error('No playable NetEase healing tracks')
   }
 
   private getPlaylistTitle(playlistId: string): string {

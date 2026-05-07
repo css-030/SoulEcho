@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { usePlayerStore } from '@/stores/player'
 
 const playerStore = usePlayerStore()
 const audioElement = ref<HTMLAudioElement | null>(null)
+const pendingAutoplay = ref(false)
+const playAttemptTimer = ref<number | null>(null)
 
 const playUrl = computed(() => playerStore.currentTrack?.playUrl ?? '')
 const coverUrl = computed(() => playerStore.currentTrack?.thumbnailUrl ?? '')
@@ -12,6 +14,7 @@ const coverUrl = computed(() => playerStore.currentTrack?.thumbnailUrl ?? '')
 watch(
   playUrl,
   async () => {
+    pendingAutoplay.value = true
     await loadAndPlay()
   },
   { immediate: true }
@@ -35,11 +38,13 @@ watch(
     }
 
     if (state === 'paused') {
+      pendingAutoplay.value = false
       audio.pause()
     }
 
     if (state === 'playing' && audio.paused) {
-      await audio.play().catch(() => playerStore.setPlaybackState('error'))
+      pendingAutoplay.value = true
+      await requestPlay()
     }
   }
 )
@@ -62,9 +67,36 @@ async function loadAndPlay(): Promise<void> {
     return
   }
 
+  pendingAutoplay.value = true
   audio.volume = playerStore.volume
   audio.load()
-  await audio.play().catch(() => playerStore.setPlaybackState('error'))
+  await requestPlay()
+}
+
+async function requestPlay(): Promise<void> {
+  const audio = audioElement.value
+  if (!audio || !playUrl.value) {
+    return
+  }
+
+  try {
+    await audio.play()
+  } catch {
+    schedulePlayRetry()
+  }
+}
+
+function schedulePlayRetry(): void {
+  if (!pendingAutoplay.value || playAttemptTimer.value !== null) {
+    return
+  }
+
+  playAttemptTimer.value = window.setTimeout(() => {
+    playAttemptTimer.value = null
+    if (pendingAutoplay.value && audioElement.value?.paused) {
+      void requestPlay()
+    }
+  }, 180)
 }
 
 function handleLoadedMetadata(): void {
@@ -77,6 +109,7 @@ function handleTimeUpdate(): void {
 }
 
 function handlePlaying(): void {
+  pendingAutoplay.value = false
   playerStore.setPlaybackState('playing')
 }
 
@@ -90,10 +123,17 @@ function handleEnded(): void {
 
 function handleError(): void {
   playerStore.setPlaybackState('error')
-  void playerStore.handleTrackEnded()
 }
 
+onMounted(() => {
+  void loadAndPlay()
+})
+
 onBeforeUnmount(() => {
+  if (playAttemptTimer.value !== null) {
+    window.clearTimeout(playAttemptTimer.value)
+  }
+
   audioElement.value?.pause()
 })
 </script>
@@ -121,8 +161,8 @@ onBeforeUnmount(() => {
 <style scoped>
 .netease-player {
   display: grid;
-  min-width: 15rem;
-  min-height: 8.4375rem;
+  width: 7.5rem;
+  aspect-ratio: 1;
   place-items: center;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -131,11 +171,10 @@ onBeforeUnmount(() => {
 }
 
 .netease-player__cover {
-  width: min(100%, 8.4375rem);
+  width: 100%;
   aspect-ratio: 1;
   border: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
   border-radius: var(--radius-md);
-  box-shadow: 0 0 0 0.75rem color-mix(in srgb, var(--color-accent) 8%, transparent);
   object-fit: cover;
 }
 

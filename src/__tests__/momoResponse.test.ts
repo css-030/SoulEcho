@@ -85,4 +85,25 @@ describe('momo response validation and normalization', () => {
     expect(normalized.shouldRecommendMusic).toBe(false)
     expect(normalized.shouldOfferHealing).toBe(false)
   })
+
+  it('accepts query as a fallback for search_query', () => {
+    const normalized = normalizeMomoResponse(
+      validateMomoResponse({
+        say: 'Try this.',
+        emotion_level: 'mild_negative',
+        emotion_tag: 'wood',
+        should_recommend_music: true,
+        should_offer_healing: false,
+        music_recommendation: {
+          scenario: 'daily-bgm',
+          source: 'youtube',
+          query: 'guqin flowing water',
+          wuxing: 'wood',
+          reason: 'A calmer sound for this moment.'
+        }
+      })
+    )
+
+    expect(normalized.musicRecommendation?.searchQuery).toBe('guqin flowing water')
+  })
 })

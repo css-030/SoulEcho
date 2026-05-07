@@ -33,11 +33,22 @@ export const FALLBACK_LIBRARY: {
       tags: ['r&b', 'rnb', 'slow jam', 'soul', 'bedroom mix', 'chill', '放松', '日常', 'daily']
     },
     {
+      id: 'daily_003',
+      source: 'youtube',
+      youtubeId: 'xvv44XEqcHI',
+      title: 'SZA Top Songs Playlist',
+      artist: 'Kioumiusic',
+      duration: 0,
+      playlistId: 'daily',
+      thumbnailUrl: 'https://i.ytimg.com/vi/xvv44XEqcHI/hqdefault.jpg',
+      tags: ['sza', 'top songs', 'study', 'chill', 'sleep', 'playlist', 'r&b', 'rnb', 'daily']
+    },
+    {
       id: 'wood_001',
       source: 'youtube',
       youtubeId: 'jfKfPfyJRdk',
-      title: '流水',
-      artist: '龚一',
+      title: 'YouTube healing radio',
+      artist: 'Lofi Girl',
       duration: 360,
       playlistId: 'wood',
       tags: ['流水', '龚一', '古琴', '木', 'wood', '肝', '平肝', '角调', '焦躁', '压抑']
@@ -46,8 +57,8 @@ export const FALLBACK_LIBRARY: {
       id: 'wood_002',
       source: 'youtube',
       youtubeId: 'jfKfPfyJRdk',
-      title: '莲心不染',
-      artist: '巫娜',
+      title: 'YouTube healing radio',
+      artist: 'Lofi Girl',
       duration: 420,
       playlistId: 'wood',
       tags: ['莲心不染', '巫娜', '古琴', '木', 'wood', '肝', '角调', '疏肝']
@@ -56,8 +67,8 @@ export const FALLBACK_LIBRARY: {
       id: 'fire_001',
       source: 'youtube',
       youtubeId: 'jfKfPfyJRdk',
-      title: '渔舟唱晚',
-      artist: '古筝',
+      title: 'YouTube healing radio',
+      artist: 'Lofi Girl',
       duration: 300,
       playlistId: 'fire',
       tags: ['渔舟唱晚', '古筝', '火', 'fire', '心', '安神', '徵调', '心慌', '失眠']
@@ -66,8 +77,8 @@ export const FALLBACK_LIBRARY: {
       id: 'fire_002',
       source: 'youtube',
       youtubeId: 'jfKfPfyJRdk',
-      title: '风铃轻音',
-      artist: '自然疗愈',
+      title: 'YouTube healing radio',
+      artist: 'Lofi Girl',
       duration: 300,
       playlistId: 'fire',
       tags: ['风铃', '轻音', '火', 'fire', '心', '安神', '徵调', '烦躁']
@@ -76,8 +87,8 @@ export const FALLBACK_LIBRARY: {
       id: 'earth_001',
       source: 'youtube',
       youtubeId: 'jfKfPfyJRdk',
-      title: '楚歌',
-      artist: '埙曲',
+      title: 'YouTube healing radio',
+      artist: 'Lofi Girl',
       duration: 360,
       playlistId: 'earth',
       tags: ['楚歌', '埙', '土', 'earth', '脾', '宫调', '健脾', '思虑', '忧虑']
@@ -86,8 +97,8 @@ export const FALLBACK_LIBRARY: {
       id: 'earth_002',
       source: 'youtube',
       youtubeId: 'jfKfPfyJRdk',
-      title: '土地颂歌',
-      artist: '低音鼓',
+      title: 'YouTube healing radio',
+      artist: 'Lofi Girl',
       duration: 360,
       playlistId: 'earth',
       tags: ['土地', '低音鼓', '土', 'earth', '脾', '宫调', '无力', '稳定']
@@ -96,8 +107,8 @@ export const FALLBACK_LIBRARY: {
       id: 'metal_001',
       source: 'youtube',
       youtubeId: 'jfKfPfyJRdk',
-      title: '关山月',
-      artist: '箫曲',
+      title: 'YouTube healing radio',
+      artist: 'Lofi Girl',
       duration: 420,
       playlistId: 'metal',
       tags: ['关山月', '箫', '金', 'metal', '肺', '商调', '润肺', '悲伤', '孤独']
@@ -106,8 +117,8 @@ export const FALLBACK_LIBRARY: {
       id: 'metal_002',
       source: 'youtube',
       youtubeId: 'jfKfPfyJRdk',
-      title: '晨钟暮鼓',
-      artist: '编钟',
+      title: 'YouTube healing radio',
+      artist: 'Lofi Girl',
       duration: 420,
       playlistId: 'metal',
       tags: ['晨钟暮鼓', '编钟', '金', 'metal', '肺', '商调', '低落', '宁心']
@@ -116,8 +127,8 @@ export const FALLBACK_LIBRARY: {
       id: 'water_001',
       source: 'youtube',
       youtubeId: 'jfKfPfyJRdk',
-      title: '禅院钟声',
-      artist: '蒋彦',
+      title: 'YouTube healing radio',
+      artist: 'Lofi Girl',
       duration: 540,
       playlistId: 'water',
       tags: ['禅院钟声', '蒋彦', '钟声', '水', 'water', '肾', '羽调', '助眠', '焦虑']
@@ -126,18 +137,18 @@ export const FALLBACK_LIBRARY: {
       id: 'water_002',
       source: 'youtube',
       youtubeId: 'jfKfPfyJRdk',
-      title: '海浪冥想',
-      artist: '自然白噪音',
+      title: 'YouTube healing radio',
+      artist: 'Lofi Girl',
       duration: 600,
       playlistId: 'water',
       tags: ['海浪', '冥想', '雨声', '水', 'water', '肾', '羽调', '恐惧', '安全感']
     }
   ],
   netease: [
-    { playlistId: 'NETEASE_PLAYLIST_ID_WOOD', wuxing: 'wood' },
-    { playlistId: 'NETEASE_PLAYLIST_ID_FIRE', wuxing: 'fire' },
-    { playlistId: 'NETEASE_PLAYLIST_ID_EARTH', wuxing: 'earth' },
-    { playlistId: 'NETEASE_PLAYLIST_ID_METAL', wuxing: 'metal' },
-    { playlistId: 'NETEASE_PLAYLIST_ID_WATER', wuxing: 'water' }
+    { playlistId: 'album:511196', wuxing: 'wood' },
+    { playlistId: 'album:511199', wuxing: 'fire' },
+    { playlistId: 'album:511194', wuxing: 'earth' },
+    { playlistId: 'album:511195', wuxing: 'metal' },
+    { playlistId: 'album:511193', wuxing: 'water' }
   ]
 }

@@ -10,10 +10,18 @@ const playerStore = usePlayerStore()
 
 const trackTitle = computed(() => playerStore.currentTrack?.title ?? '还没有播放音乐')
 const trackArtist = computed(() => playerStore.currentTrack?.artist ?? 'SoulEcho')
+const youtubeUrl = computed(() => {
+  const youtubeId = playerStore.currentTrack?.youtubeId
+  return youtubeId ? `https://www.youtube.com/watch?v=${youtubeId}` : null
+})
 const progressMax = computed(() => Math.max(playerStore.duration, playerStore.progress, 1))
 const progressPercent = computed(() => Math.min((playerStore.progress / progressMax.value) * 100, 100))
 const playButtonLabel = computed(() => (playerStore.state === 'playing' ? '暂停' : '播放'))
 const favoriteButtonLabel = computed(() => (playerStore.isCurrentFavorite ? '已收藏' : '收藏'))
+const healingButtonLabel = computed(() => '结束疗愈')
+const errorMessage = computed(() =>
+  playerStore.source === 'youtube' ? 'This track cannot be played inside SoulEcho.' : 'This NetEase track is temporarily unavailable.'
+)
 const sourceLabel = computed(() => {
   if (playerStore.source === 'netease') {
     return '疗愈中 · 网易云'
@@ -68,6 +76,10 @@ function handleVolume(event: Event): void {
   playerStore.setVolume(Number(input.value))
 }
 
+function handleEndHealing(): void {
+  playerStore.endHealingSession({ stopPlayback: true })
+}
+
 onMounted(() => {
   void playerStore.initializeFavorites()
 })
@@ -78,24 +90,33 @@ onMounted(() => {
     <div v-if="playerStore.source === 'youtube'" class="player-expanded__media">
       <YouTubePlayer v-if="playerStore.source === 'youtube'" />
     </div>
-    <div v-else-if="playerStore.source === 'netease'" class="player-expanded__media">
+    <div v-else-if="playerStore.source === 'netease'" class="player-expanded__media is-audio">
       <NeteasePlayer />
     </div>
 
     <div class="player-expanded__content">
       <div class="player-expanded__topline">
         <div class="player-expanded__meta">
-          <span class="player-expanded__source">{{ sourceLabel }}</span>
+          <span class="player-expanded__source" :title="sourceLabel">{{ sourceLabel }}</span>
           <span v-if="wuxingLabel" class="player-expanded__wuxing">{{ wuxingLabel }}</span>
         </div>
         <button class="player-expanded__favorite" type="button" :disabled="!playerStore.hasTrack" @click="playerStore.toggleFavorite">
           {{ favoriteButtonLabel }}
         </button>
+        <button
+          v-if="playerStore.isHealingMode"
+          class="player-expanded__healing"
+          type="button"
+          :disabled="!playerStore.hasTrack"
+          @click="handleEndHealing"
+        >
+          {{ healingButtonLabel }}
+        </button>
       </div>
 
-      <div>
-        <h2 class="player-expanded__title">{{ trackTitle }}</h2>
-        <p class="player-expanded__artist">{{ trackArtist }}</p>
+      <div class="player-expanded__track">
+        <h2 class="player-expanded__title" :title="trackTitle">{{ trackTitle }}</h2>
+        <p class="player-expanded__artist" :title="trackArtist">{{ trackArtist }}</p>
       </div>
 
       <div v-if="playerStore.isTimelineAvailable" class="player-expanded__progress">
@@ -119,6 +140,11 @@ onMounted(() => {
       <div v-else class="player-expanded__live-note">
         <span class="player-expanded__live-dot" />
         <span>直播电台由 YouTube 小窗控制进度</span>
+      </div>
+
+      <div v-if="playerStore.state === 'error'" class="player-expanded__error">
+        <span>{{ errorMessage }}</span>
+        <a v-if="youtubeUrl" class="player-expanded__external" :href="youtubeUrl" target="_blank" rel="noreferrer">Open on YouTube</a>
       </div>
 
       <div class="player-expanded__controls">
@@ -157,9 +183,9 @@ onMounted(() => {
   bottom: var(--space-lg);
   z-index: 30;
   display: grid;
-  grid-template-columns: auto minmax(18rem, 24rem);
+  grid-template-columns: auto minmax(0, 24rem);
   gap: var(--space-md);
-  width: min(calc(100vw - var(--space-xl) * 2), 43rem);
+  width: min(calc(100vw - var(--space-xl) * 2), 36rem);
   padding: var(--space-md);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -173,6 +199,11 @@ onMounted(() => {
   position: relative;
   min-width: 15rem;
   min-height: 8.4375rem;
+}
+
+.player-expanded__media.is-audio {
+  min-width: 7.5rem;
+  min-height: 7.5rem;
 }
 
 .player-expanded__content {
@@ -203,11 +234,20 @@ onMounted(() => {
 }
 
 .player-expanded__source {
+  overflow: hidden;
+  max-width: 100%;
   color: var(--text-secondary);
   font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0;
+  text-overflow: ellipsis;
   text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.player-expanded__track {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .player-expanded__wuxing {
@@ -230,7 +270,8 @@ onMounted(() => {
     opacity var(--duration-fast) var(--ease-out);
 }
 
-.player-expanded__favorite {
+.player-expanded__favorite,
+.player-expanded__healing {
   min-width: 4.75rem;
   min-height: 2.25rem;
   padding: 0 var(--space-md);
@@ -247,14 +288,22 @@ onMounted(() => {
     opacity var(--duration-fast) var(--ease-out);
 }
 
-.player-expanded__favorite:hover:not(:disabled) {
+.player-expanded__favorite:hover:not(:disabled),
+.player-expanded__healing:hover:not(:disabled) {
   background: color-mix(in srgb, var(--color-primary) 32%, var(--bg-card));
   color: var(--text-primary);
 }
 
-.player-expanded__favorite:disabled {
+.player-expanded__favorite:disabled,
+.player-expanded__healing:disabled {
   cursor: not-allowed;
   opacity: 0.45;
+}
+
+.player-expanded__healing {
+  border-color: color-mix(in srgb, var(--color-wood) 58%, var(--color-border));
+  background: color-mix(in srgb, var(--color-wood) 18%, var(--bg-card));
+  color: var(--text-primary);
 }
 
 .player-expanded__button {
@@ -279,6 +328,7 @@ onMounted(() => {
 
 .player-expanded__title {
   overflow: hidden;
+  max-width: 100%;
   margin: 0;
   color: var(--text-primary);
   font-size: 1rem;
@@ -290,9 +340,13 @@ onMounted(() => {
 }
 
 .player-expanded__artist {
+  overflow: hidden;
+  max-width: 100%;
   margin: 0.15rem 0 0;
   color: var(--text-secondary);
   font-size: 0.875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .player-expanded__progress {
@@ -308,6 +362,27 @@ onMounted(() => {
   color: var(--text-secondary);
   font-size: 0.8125rem;
   font-weight: 800;
+}
+
+.player-expanded__error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 2rem;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.player-expanded__external {
+  color: var(--color-accent);
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.player-expanded__external:hover {
+  text-decoration: underline;
 }
 
 .player-expanded__live-dot {
@@ -372,6 +447,10 @@ onMounted(() => {
 
   .player-expanded__media {
     min-width: 0;
+  }
+
+  .player-expanded__media.is-audio {
+    justify-self: center;
   }
 }
 </style>

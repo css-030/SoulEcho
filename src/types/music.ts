@@ -14,6 +14,7 @@ export interface Track {
   neteaseId?: string
   wuxingTag?: WuxingType
   playUrl?: string
+  viewCount?: number
 }
 
 export interface Playlist {

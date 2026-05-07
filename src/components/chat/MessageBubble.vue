@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 
+import HealingInviteCard from '@/components/chat/HealingInviteCard.vue'
+import MusicRecommendCard from '@/components/chat/MusicRecommendCard.vue'
 import type { Message } from '@/types/message'
 import { formatChatTime } from '@/utils/time'
 
@@ -35,7 +37,16 @@ function handleAvatarError(): void {
         <span>{{ speakerName }}</span>
         <time>{{ messageTime }}</time>
       </div>
-      <p class="message-bubble__content">{{ message.content }}</p>
+      <MusicRecommendCard
+        v-if="message.type === 'music_card' && message.musicRecommendation"
+        :recommendation="message.musicRecommendation"
+      />
+      <HealingInviteCard
+        v-else-if="message.type === 'healing_invite' && message.healingTrigger"
+        :trigger="message.healingTrigger"
+        :content="message.content"
+      />
+      <p v-else class="message-bubble__content">{{ message.content }}</p>
     </article>
   </div>
 </template>
@@ -101,6 +112,15 @@ function handleAvatarError(): void {
   background: var(--chat-bubble-momo-bg, var(--bg-card));
   box-shadow: var(--chat-bubble-shadow, var(--shadow-card));
   backdrop-filter: var(--chat-bubble-filter, blur(8px));
+}
+
+.message-bubble:has(.music-card),
+.message-bubble:has(.healing-card) {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 .message-row.is-momo .message-bubble {
