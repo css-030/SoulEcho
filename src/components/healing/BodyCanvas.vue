@@ -72,10 +72,8 @@ function isOrganActive(organ: OrganType): boolean {
 
       <EnergyParticles v-if="isActive" :origin="activeOrgan.particleOrigin" />
       <OrganLabel
-        v-for="organ in HEALING_ORGANS"
-        :key="`${organ.organ}-label`"
-        :organ="organ"
-        :is-active="isOrganActive(organ.organ)"
+        :organ="activeOrgan"
+        :is-active="isActive"
       />
     </div>
   </section>
