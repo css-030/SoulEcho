@@ -65,7 +65,6 @@ const isLeftSide = computed(() => props.organ.labelPosition.x < 50)
   color: var(--text-primary);
   opacity: 1;
   transform: translate(-50%, -50%) scale(1.04);
-  animation: organ-label-float 5.6s var(--ease-breath) infinite;
 }
 
 .organ-label.is-left-side {
@@ -111,17 +110,6 @@ const isLeftSide = computed(() => props.organ.labelPosition.x < 50)
   line-height: 1.5;
 }
 
-@keyframes organ-label-float {
-  0%,
-  100% {
-    transform: translate(-50%, -50%) scale(1.04);
-  }
-
-  50% {
-    transform: translate(-50%, calc(-50% - 0.35rem)) scale(1.04);
-  }
-}
-
 @media (max-width: 760px) {
   .organ-label {
     width: 9.5rem;
@@ -134,7 +122,6 @@ const isLeftSide = computed(() => props.organ.labelPosition.x < 50)
 
 @media (prefers-reduced-motion: reduce) {
   .organ-label {
-    animation: none;
     transition: none;
   }
 }

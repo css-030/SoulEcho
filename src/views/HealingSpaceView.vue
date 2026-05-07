@@ -181,14 +181,24 @@ onUnmounted(() => {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(115deg, transparent 14%, color-mix(in srgb, var(--organ-glow-color) 9%, transparent) 34%, transparent 52%),
-    linear-gradient(245deg, transparent 18%, color-mix(in srgb, var(--text-primary) 6%, transparent) 46%, transparent 68%),
+    linear-gradient(115deg, transparent 12%, color-mix(in srgb, var(--organ-glow-color) 18%, transparent) 34%, transparent 58%),
+    linear-gradient(245deg, transparent 14%, color-mix(in srgb, var(--text-primary) 10%, transparent) 46%, transparent 72%),
     radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--organ-color) 26%, transparent) 0%, transparent 30%),
     radial-gradient(circle at 50% 52%, color-mix(in srgb, var(--organ-glow-color) 18%, transparent) 0%, transparent 38%);
+  background-position:
+    0% 50%,
+    100% 50%,
+    50% 42%,
+    50% 52%;
+  background-size:
+    180% 180%,
+    170% 170%,
+    100% 100%,
+    100% 100%;
   opacity: 0.86;
   pointer-events: none;
   transform: scale(1.05);
-  animation: healing-aura-flow 13s var(--ease-breath) infinite alternate;
+  animation: healing-aura-flow 16s var(--ease-breath) infinite alternate;
 }
 
 .healing-space__shell,
@@ -297,7 +307,6 @@ onUnmounted(() => {
   border-radius: var(--radius-pill);
   background: var(--organ-color);
   box-shadow: 0 0 1rem var(--organ-glow-color);
-  animation: healing-dot-pulse 3.8s var(--ease-breath) infinite;
 }
 
 .healing-space__track h2 {
@@ -388,31 +397,33 @@ onUnmounted(() => {
 
 @keyframes healing-aura-flow {
   0% {
-    opacity: 0.72;
-    transform: scale(1.03) translate3d(-1.2rem, 0.4rem, 0);
+    background-position:
+      0% 44%,
+      100% 56%,
+      48% 40%,
+      52% 54%;
+    opacity: 0.76;
+    transform: scale(1.04) translate3d(-0.8rem, 0.3rem, 0);
   }
 
   50% {
-    opacity: 0.92;
-    transform: scale(1.08) translate3d(0.8rem, -0.6rem, 0);
+    background-position:
+      52% 50%,
+      44% 50%,
+      52% 42%,
+      48% 50%;
+    opacity: 0.96;
+    transform: scale(1.08) translate3d(0.6rem, -0.4rem, 0);
   }
 
   100% {
-    opacity: 0.8;
-    transform: scale(1.05) translate3d(1.1rem, 0.6rem, 0);
-  }
-}
-
-@keyframes healing-dot-pulse {
-  0%,
-  100% {
-    opacity: 0.8;
-    transform: scale(0.92);
-  }
-
-  50% {
-    opacity: 1;
-    transform: scale(1.08);
+    background-position:
+      100% 56%,
+      0% 44%,
+      50% 44%,
+      50% 50%;
+    opacity: 0.82;
+    transform: scale(1.05) translate3d(0.9rem, 0.5rem, 0);
   }
 }
 
@@ -440,7 +451,6 @@ onUnmounted(() => {
   .healing-space__exit,
   .healing-space__bar span,
   .healing-space__aura,
-  .healing-space__organ-dot,
   .healing-complete-enter-active,
   .healing-complete-leave-active {
     animation: none;
