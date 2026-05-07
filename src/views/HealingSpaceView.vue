@@ -173,19 +173,40 @@ onUnmounted(() => {
   overflow: hidden;
   padding: var(--space-xl);
   background:
-    linear-gradient(120deg, transparent 0 18%, color-mix(in srgb, var(--organ-glow-color) 14%, transparent) 32%, transparent 52%),
-    linear-gradient(245deg, color-mix(in srgb, var(--text-primary) 8%, transparent) 0 16%, transparent 38% 72%, color-mix(in srgb, var(--organ-color) 10%, transparent) 100%),
+    radial-gradient(ellipse at 22% 42%, color-mix(in srgb, var(--organ-glow-color) 24%, transparent) 0%, transparent 34%),
+    radial-gradient(ellipse at 76% 58%, color-mix(in srgb, var(--text-primary) 14%, transparent) 0%, transparent 36%),
+    linear-gradient(120deg, transparent 0 14%, color-mix(in srgb, var(--organ-glow-color) 24%, transparent) 34%, transparent 58%),
+    linear-gradient(245deg, color-mix(in srgb, var(--text-primary) 12%, transparent) 0 18%, transparent 36% 70%, color-mix(in srgb, var(--organ-color) 18%, transparent) 100%),
     var(--bg-gradient);
   background-position:
+    18% 46%,
+    82% 58%,
     0% 48%,
     100% 52%,
     center;
   background-size:
-    210% 210%,
-    190% 190%,
+    150% 150%,
+    140% 140%,
+    220% 220%,
+    200% 200%,
     auto;
   color: var(--text-primary);
-  animation: healing-background-flow 22s var(--ease-breath) infinite alternate;
+  animation: healing-background-flow 13s var(--ease-breath) infinite alternate;
+}
+
+.healing-space::before {
+  position: absolute;
+  inset: -18%;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse at 30% 48%, color-mix(in srgb, var(--organ-color) 18%, transparent) 0%, transparent 34%),
+    radial-gradient(ellipse at 70% 52%, color-mix(in srgb, var(--text-primary) 10%, transparent) 0%, transparent 36%),
+    linear-gradient(90deg, transparent, color-mix(in srgb, var(--organ-glow-color) 12%, transparent), transparent);
+  content: '';
+  opacity: 0.58;
+  pointer-events: none;
+  transform: translate3d(-4%, 0, 0) scale(1.04);
+  animation: healing-background-wave 9.5s var(--ease-breath) infinite alternate;
 }
 
 .healing-space.is-fire {
@@ -211,6 +232,7 @@ onUnmounted(() => {
 .healing-space__aura {
   position: absolute;
   inset: 0;
+  z-index: 1;
   background:
     linear-gradient(115deg, transparent 12%, color-mix(in srgb, var(--organ-glow-color) 18%, transparent) 34%, transparent 58%),
     linear-gradient(245deg, transparent 14%, color-mix(in srgb, var(--text-primary) 10%, transparent) 46%, transparent 72%),
@@ -521,23 +543,46 @@ onUnmounted(() => {
 @keyframes healing-background-flow {
   0% {
     background-position:
-      0% 42%,
-      100% 58%,
+      12% 38%,
+      88% 64%,
+      0% 40%,
+      100% 60%,
       center;
   }
 
   50% {
     background-position:
       54% 50%,
-      42% 48%,
+      46% 46%,
+      62% 52%,
+      34% 46%,
       center;
   }
 
   100% {
     background-position:
-      100% 58%,
-      0% 42%,
+      86% 62%,
+      18% 40%,
+      100% 60%,
+      0% 40%,
       center;
+  }
+}
+
+@keyframes healing-background-wave {
+  0% {
+    opacity: 0.42;
+    transform: translate3d(-5%, 1%, 0) scale(1.02);
+  }
+
+  50% {
+    opacity: 0.68;
+    transform: translate3d(2%, -1.5%, 0) scale(1.08);
+  }
+
+  100% {
+    opacity: 0.52;
+    transform: translate3d(5%, 1%, 0) scale(1.04);
   }
 }
 
@@ -589,6 +634,7 @@ onUnmounted(() => {
 
 @media (prefers-reduced-motion: reduce) {
   .healing-space,
+  .healing-space::before,
   .healing-space__exit,
   .healing-space__bar span,
   .healing-space__bar span::before,
