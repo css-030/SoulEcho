@@ -15,6 +15,7 @@ const props = defineProps<Props>()
 
 const imageErrors = reactive<Record<string, boolean>>({})
 const activeOrgan = computed(() => HEALING_ORGANS.find((organ) => organ.organ === props.currentOrgan) ?? HEALING_ORGANS[0])
+const visibleOrgans = computed(() => HEALING_ORGANS.filter((organ) => organ.organ === activeOrgan.value.organ))
 
 function hasImageError(key: string): boolean {
   return Boolean(imageErrors[key])
@@ -50,10 +51,10 @@ function isOrganActive(organ: OrganType): boolean {
       />
 
       <div
-        v-for="organ in HEALING_ORGANS"
+        v-for="organ in visibleOrgans"
         :key="organ.organ"
         class="body-canvas__organ"
-        :class="[{ 'is-active': isOrganActive(organ.organ), 'is-dim': !isOrganActive(organ.organ) }, `is-${organ.wuxing}`]"
+        :class="[{ 'is-active': isOrganActive(organ.organ) }, `is-${organ.wuxing}`]"
         aria-hidden="true"
       >
         <div v-if="hasImageError(organ.organ)" class="body-canvas__organ-placeholder">
@@ -137,12 +138,11 @@ function isOrganActive(organ: OrganType): boolean {
   position: absolute;
   inset: 0;
   z-index: 3;
-  opacity: 0.16;
+  opacity: 0;
   filter: saturate(0.85);
   transition:
     opacity var(--duration-slow) var(--ease-out),
     filter var(--duration-slow) var(--ease-out);
-  animation: organ-breathe-dim 5.5s var(--ease-breath) infinite;
 }
 
 .body-canvas__organ.is-active {
@@ -153,10 +153,6 @@ function isOrganActive(organ: OrganType): boolean {
     drop-shadow(0 0 1rem var(--organ-color))
     drop-shadow(0 0 2.8rem var(--organ-glow-color));
   animation: organ-breathe var(--duration-breathe) var(--ease-breath) infinite;
-}
-
-.body-canvas__organ.is-dim {
-  mix-blend-mode: screen;
 }
 
 .body-canvas__halo {
@@ -231,17 +227,6 @@ function isOrganActive(organ: OrganType): boolean {
 
   50% {
     transform: scale(1.035);
-  }
-}
-
-@keyframes organ-breathe-dim {
-  0%,
-  100% {
-    opacity: 0.14;
-  }
-
-  50% {
-    opacity: 0.24;
   }
 }
 
