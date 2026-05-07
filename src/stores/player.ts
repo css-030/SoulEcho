@@ -3,18 +3,12 @@ import { computed, ref } from 'vue'
 
 import { musicRouter } from '@/services/music/MusicRouter'
 import { favoriteRepo } from '@/services/storage/repositories/FavoriteRepo'
+import { useHealingStore } from '@/stores/healing'
 import type { FavoriteTrack } from '@/types/favorite'
+import { HEALING_ORGAN_BY_WUXING } from '@/types/healing'
 import type { Playlist, PlayerState, Track } from '@/types/music'
 import type { OrganType, WuxingType } from '@/types/wuxing'
 import { createId } from '@/utils/id'
-
-const WUXING_ORGAN_MAP: Record<WuxingType, OrganType> = {
-  wood: 'liver',
-  fire: 'heart',
-  earth: 'spleen',
-  metal: 'lung',
-  water: 'kidney'
-}
 
 export const usePlayerStore = defineStore('player', () => {
   const state = ref<PlayerState>('idle')
@@ -86,16 +80,20 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   async function startHealingSession(wuxing: WuxingType): Promise<void> {
+    const healingStore = useHealingStore()
     isHealingMode.value = true
-    currentHealingOrgan.value = WUXING_ORGAN_MAP[wuxing]
+    currentHealingOrgan.value = HEALING_ORGAN_BY_WUXING[wuxing]
     isPlaylistEnd.value = false
+    healingStore.activate(wuxing)
     const playlist = await musicRouter.getHealingPlaylist(wuxing)
     await play(playlist)
   }
 
   function endHealingSession(options: { stopPlayback?: boolean } = {}): void {
+    const healingStore = useHealingStore()
     isHealingMode.value = false
     currentHealingOrgan.value = undefined
+    healingStore.complete()
     if (options.stopPlayback && currentTrack.value) {
       state.value = 'paused'
     }
@@ -118,9 +116,6 @@ export const usePlayerStore = defineStore('player', () => {
     if (!playlist) {
       isPlaylistEnd.value = true
       state.value = 'ended'
-      if (isHealingMode.value) {
-        endHealingSession()
-      }
       return
     }
 
@@ -133,9 +128,6 @@ export const usePlayerStore = defineStore('player', () => {
 
     isPlaylistEnd.value = true
     state.value = 'ended'
-    if (isHealingMode.value) {
-      endHealingSession()
-    }
   }
 
   async function previous(): Promise<void> {
@@ -254,7 +246,11 @@ export const usePlayerStore = defineStore('player', () => {
     currentTrack.value = playableTrack
     source.value = playableTrack.source
     if (playableTrack.wuxingTag) {
-      currentHealingOrgan.value = WUXING_ORGAN_MAP[playableTrack.wuxingTag]
+      const nextOrgan = HEALING_ORGAN_BY_WUXING[playableTrack.wuxingTag]
+      currentHealingOrgan.value = nextOrgan
+      if (isHealingMode.value) {
+        useHealingStore().switchOrgan(nextOrgan)
+      }
     }
     duration.value = playableTrack.duration
     isTimelineAvailable.value = playableTrack.duration > 0 && playableTrack.duration <= 21600

@@ -1,15 +1,20 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 
 import MessageBubble from '@/components/chat/MessageBubble.vue'
 import MessageInput from '@/components/chat/MessageInput.vue'
 import PlayerBar from '@/components/player/PlayerBar.vue'
 import { useChat } from '@/composables/useChat'
+import { useHealingStore } from '@/stores/healing'
 import { usePlayerStore } from '@/stores/player'
 
 const { chatStore } = useChat()
+const router = useRouter()
+const healingStore = useHealingStore()
 const playerStore = usePlayerStore()
 const messageListRef = ref<HTMLElement | null>(null)
+const healingButtonLabel = computed(() => (healingStore.isActive ? '进入疗愈空间' : '疗愈空间暂未开启'))
 
 async function scrollToBottom(): Promise<void> {
   await nextTick()
@@ -29,6 +34,15 @@ async function playDailyBgm(): Promise<void> {
 
 async function playNeteaseDemo(): Promise<void> {
   await playerStore.playNeteaseSearch('流水 龚一')
+}
+
+async function openHealingSpace(): Promise<void> {
+  if (!healingStore.isActive) {
+    return
+  }
+
+  healingStore.openImmersive()
+  await router.push('/healing')
 }
 
 watch(
@@ -51,8 +65,21 @@ onMounted(() => {
           <p class="chat-view__eyebrow">SoulEcho</p>
           <h1 class="chat-view__title">MOMO聊天室</h1>
         </div>
-        <div class="chat-view__status" :class="{ 'is-typing': chatStore.isMomoTyping }">
-          {{ chatStore.isMomoTyping ? '正在输入中...' : '在线陪伴中' }}
+        <div class="chat-view__header-actions">
+          <button
+            class="chat-view__healing-entry"
+            :class="{ 'is-active': healingStore.isActive }"
+            type="button"
+            :disabled="!healingStore.isActive"
+            :aria-label="healingButtonLabel"
+            :title="healingButtonLabel"
+            @click="openHealingSpace"
+          >
+            <span class="chat-view__healing-glyph" aria-hidden="true" />
+          </button>
+          <div class="chat-view__status" :class="{ 'is-typing': chatStore.isMomoTyping }">
+            {{ chatStore.isMomoTyping ? '正在输入中...' : '在线陪伴中' }}
+          </div>
         </div>
       </header>
 
@@ -105,6 +132,62 @@ onMounted(() => {
   justify-content: space-between;
   gap: var(--space-md);
   padding: var(--space-lg) 0 var(--space-sm);
+}
+
+.chat-view__header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.chat-view__healing-entry {
+  position: relative;
+  display: grid;
+  width: 2.75rem;
+  min-width: 2.75rem;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--text-tertiary) 32%, var(--color-border));
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--bg-card) 80%, var(--bg-primary));
+  box-shadow: var(--shadow-card);
+  cursor: not-allowed;
+  opacity: 0.58;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.chat-view__healing-entry.is-active {
+  border-color: color-mix(in srgb, var(--color-wood) 42%, var(--color-fire));
+  cursor: pointer;
+  opacity: 1;
+  animation: healing-entry-pulse 2s var(--ease-breath) infinite;
+}
+
+.chat-view__healing-entry.is-active:hover {
+  transform: scale(1.05);
+}
+
+.chat-view__healing-entry:disabled {
+  pointer-events: none;
+}
+
+.chat-view__healing-glyph {
+  width: 1rem;
+  height: 1.35rem;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 60% 60% 48% 48%;
+  color: var(--text-tertiary);
+}
+
+.chat-view__healing-entry.is-active .chat-view__healing-glyph {
+  color: var(--color-accent);
+  box-shadow:
+    0 0 0.65rem color-mix(in srgb, var(--color-wood) 38%, transparent),
+    0 0 1rem color-mix(in srgb, var(--color-fire) 28%, transparent);
 }
 
 .chat-view__eyebrow {
@@ -236,12 +319,30 @@ onMounted(() => {
   }
 }
 
+@keyframes healing-entry-pulse {
+  0%,
+  100% {
+    box-shadow: var(--shadow-card);
+  }
+
+  50% {
+    box-shadow:
+      var(--shadow-card),
+      0 0 1.2rem color-mix(in srgb, var(--color-accent) 28%, transparent);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .chat-view__messages {
     scroll-behavior: auto;
   }
 
   .chat-view__music-demo {
+    transition: none;
+  }
+
+  .chat-view__healing-entry {
+    animation: none;
     transition: none;
   }
 
@@ -262,6 +363,11 @@ onMounted(() => {
   .chat-view__header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .chat-view__header-actions {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .chat-view__messages {

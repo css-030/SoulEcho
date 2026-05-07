@@ -16,3 +16,9 @@ export function formatChatTime(timestamp: number): string {
     minute: '2-digit'
   }).format(timestamp)
 }
+
+export function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms)
+  })
+}
