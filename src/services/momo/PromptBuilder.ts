@@ -73,6 +73,7 @@ function buildJsonInstruction(): string {
   "say": "你想对用户说的话",
   "emotion_level": "neutral",
   "emotion_tag": null,
+  "garden_emotion": "balanced",
   "should_recommend_music": false,
   "should_offer_healing": false,
   "music_recommendation": null
@@ -90,6 +91,15 @@ function buildJsonInstruction(): string {
 字段约束：
 - emotion_level 只能是 "neutral"、"mild_negative"、"strong_negative"
 - emotion_tag 只能是 "wood"、"fire"、"earth"、"metal"、"water" 或 null
+- garden_emotion 只能是 "balanced"、"joyful"、"wood"、"fire"、"earth"、"metal"、"water" 或 null
+- garden_emotion 是给情绪花园使用的直观状态，要从用户的自然聊天语境中感知，不要求用户像打卡一样说固定句式
+- 用户语气平稳、日常、顺顺地聊天，没有明显情绪波动时，garden_emotion 可以是 "balanced"，emotion_tag 应为 null
+- 用户流露出舒服、满足、轻快、被照亮、开心但不过度兴奋时，garden_emotion 可以是 "joyful"，emotion_tag 可以是 null
+- 用户明显烦躁、憋闷、压着火时，garden_emotion 为 "wood"，emotion_tag 为 "wood"
+- 用户心慌、亢奋、停不下来、睡不安稳时，garden_emotion 为 "fire"，emotion_tag 为 "fire"
+- 用户反复想、纠结、脑子很满时，garden_emotion 为 "earth"，emotion_tag 为 "earth"
+- 用户低落、孤独、难过、想哭时，garden_emotion 为 "metal"，emotion_tag 为 "metal"
+- 用户害怕、紧张、不安、缺少安全感时，garden_emotion 为 "water"，emotion_tag 为 "water"
 - should_recommend_music 和 should_offer_healing 只能是 true 或 false
 - should_recommend_music 为 false 时，music_recommendation 必须是 null
 - 用户只是轻度负面时，例如“我今天好烦”“有点累”“有点压力”，先温柔回应并记录情绪，不要立刻推送音乐卡片，should_recommend_music 设为 false
@@ -136,9 +146,11 @@ ${buildJsonInstruction()}`
 - 土：${stats.distribution.earth} 天
 - 金：${stats.distribution.metal} 天
 - 水：${stats.distribution.water} 天
+- 平和：${stats.distribution.balanced} 天
+- 愉悦：${stats.distribution.joyful} 天
 - 记录天数：${stats.recordedDays}/${stats.totalDays}
 - 主导五行：${stats.dominantWuxing}
 
-要求：自然、温柔、不要诊断，不要说教。`
+要求：自然、温柔、不要诊断，不要说教。平和表示气机相对平顺，愉悦表示正向舒心，不需要当成问题处理。`
   }
 }

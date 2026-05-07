@@ -5,6 +5,7 @@ export function normalizeMomoResponse(raw: MomoRawResponse): MomoResponse {
     say: raw.say,
     emotionDetected: raw.emotion_level,
     emotionTag: raw.emotion_tag ?? undefined,
+    gardenEmotion: raw.garden_emotion ?? undefined,
     shouldRecommendMusic: raw.should_recommend_music,
     shouldOfferHealing: raw.should_offer_healing,
     musicRecommendation: raw.music_recommendation

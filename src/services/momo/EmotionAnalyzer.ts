@@ -18,7 +18,9 @@ function intensityFromLevel(level: EmotionLevel): number {
 
 export class EmotionAnalyzer {
   toEmotionRecord(response: MomoResponse, contextMessageIds: string[] = []): EmotionRecord | null {
-    if (!response.emotionTag) {
+    const gardenEmotion = response.gardenEmotion ?? response.emotionTag
+
+    if (!gardenEmotion) {
       return null
     }
 
@@ -28,7 +30,7 @@ export class EmotionAnalyzer {
       id: createId('emotion'),
       date: getDateKey(new Date(timestamp)),
       timestamp,
-      wuxingTag: response.emotionTag,
+      wuxingTag: gardenEmotion,
       intensity: intensityFromLevel(response.emotionDetected),
       source: 'auto',
       contextMessageIds

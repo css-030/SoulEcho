@@ -39,4 +39,25 @@ describe('EmotionAnalyzer', () => {
 
     expect(emotionAnalyzer.toEmotionRecord(response)).toBeNull()
   })
+
+  it('records balanced and joyful garden emotions even when wuxing emotion tag is null', () => {
+    const balanced: MomoResponse = {
+      say: '听起来今天挺平稳的。',
+      emotionDetected: 'neutral',
+      gardenEmotion: 'balanced',
+      shouldRecommendMusic: false,
+      shouldOfferHealing: false
+    }
+
+    const joyful: MomoResponse = {
+      say: '这份开心很舒服。',
+      emotionDetected: 'neutral',
+      gardenEmotion: 'joyful',
+      shouldRecommendMusic: false,
+      shouldOfferHealing: false
+    }
+
+    expect(emotionAnalyzer.toEmotionRecord(balanced)?.wuxingTag).toBe('balanced')
+    expect(emotionAnalyzer.toEmotionRecord(joyful)?.wuxingTag).toBe('joyful')
+  })
 })

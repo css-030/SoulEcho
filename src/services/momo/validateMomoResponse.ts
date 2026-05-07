@@ -1,3 +1,4 @@
+import type { GardenEmotionTag } from '@/types/emotion'
 import type { EmotionLevel } from '@/types/message'
 import type { MusicSource } from '@/types/music'
 import type { MomoRawMusicRecommendation, MomoRawResponse } from '@/types/momo'
@@ -6,6 +7,7 @@ import type { WuxingType } from '@/types/wuxing'
 const DEFAULT_SAY = '我刚刚有点走神了，可以再跟我说一遍吗？'
 const EMOTION_LEVELS: EmotionLevel[] = ['neutral', 'mild_negative', 'strong_negative']
 const WUXING_TYPES: WuxingType[] = ['wood', 'fire', 'earth', 'metal', 'water']
+const GARDEN_EMOTION_TYPES: GardenEmotionTag[] = ['balanced', 'joyful', 'wood', 'fire', 'earth', 'metal', 'water']
 const MUSIC_SOURCES: MusicSource[] = ['youtube', 'netease', 'fallback']
 const SCENARIOS: MomoRawMusicRecommendation['scenario'][] = ['daily-bgm', 'healing', 'user-requested']
 
@@ -19,6 +21,12 @@ function validateEmotionLevel(value: unknown): EmotionLevel {
 
 function validateWuxing(value: unknown): WuxingType | null {
   return typeof value === 'string' && WUXING_TYPES.includes(value as WuxingType) ? (value as WuxingType) : null
+}
+
+function validateGardenEmotion(value: unknown): GardenEmotionTag | null {
+  return typeof value === 'string' && GARDEN_EMOTION_TYPES.includes(value as GardenEmotionTag)
+    ? (value as GardenEmotionTag)
+    : null
 }
 
 function validateMusicRecommendation(value: unknown): MomoRawMusicRecommendation | null {
@@ -62,6 +70,7 @@ export function validateMomoResponse(raw: unknown): MomoRawResponse {
     say: typeof raw.say === 'string' && raw.say.trim().length > 0 ? raw.say : DEFAULT_SAY,
     emotion_level: validateEmotionLevel(raw.emotion_level),
     emotion_tag: validateWuxing(raw.emotion_tag),
+    garden_emotion: validateGardenEmotion(raw.garden_emotion),
     should_recommend_music: shouldRecommendMusic,
     should_offer_healing: typeof raw.should_offer_healing === 'boolean' ? raw.should_offer_healing : false,
     music_recommendation: shouldRecommendMusic ? validateMusicRecommendation(raw.music_recommendation) : null
@@ -72,6 +81,7 @@ export const fallbackMomoResponse: MomoRawResponse = {
   say: DEFAULT_SAY,
   emotion_level: 'neutral',
   emotion_tag: null,
+  garden_emotion: null,
   should_recommend_music: false,
   should_offer_healing: false,
   music_recommendation: null

@@ -79,6 +79,14 @@ onMounted(() => {
           <h1 class="chat-view__title">MOMO聊天室</h1>
         </div>
         <div class="chat-view__header-actions">
+          <RouterLink class="chat-view__garden-entry" to="/garden" aria-label="打开情绪花园" title="打开情绪花园">
+            <svg class="chat-view__garden-glyph" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 20v-7" />
+              <path d="M12 13c-3.2 0-5.4-2-6.2-5.8 3.9.1 6.2 2.1 6.2 5.8Z" />
+              <path d="M12 13c3.2 0 5.4-2 6.2-5.8-3.9.1-6.2 2.1-6.2 5.8Z" />
+              <path d="M8 20h8" />
+            </svg>
+          </RouterLink>
           <button
             class="chat-view__healing-entry"
             :class="{ 'is-active': healingStore.isActive }"
@@ -177,6 +185,41 @@ onMounted(() => {
     border-color var(--duration-fast) var(--ease-out),
     opacity var(--duration-fast) var(--ease-out),
     transform var(--duration-fast) var(--ease-out);
+}
+
+.chat-view__garden-entry {
+  position: relative;
+  display: grid;
+  width: 2.75rem;
+  min-width: 2.75rem;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--bg-card) 82%, var(--color-primary));
+  box-shadow: var(--shadow-card);
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.chat-view__garden-entry:hover {
+  background: color-mix(in srgb, var(--color-primary) 36%, var(--bg-card));
+  color: var(--text-primary);
+  transform: scale(1.05);
+}
+
+.chat-view__garden-glyph {
+  width: 1.4rem;
+  height: 1.4rem;
+  fill: color-mix(in srgb, currentColor 12%, transparent);
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .chat-view__healing-entry.is-active {
@@ -385,6 +428,7 @@ onMounted(() => {
     transition: none;
   }
 
+  .chat-view__garden-entry,
   .chat-view__healing-entry {
     animation: none;
     transition: none;
