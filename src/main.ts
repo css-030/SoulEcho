@@ -1,0 +1,15 @@
+import { createPinia } from 'pinia'
+import { createApp } from 'vue'
+
+import App from './App.vue'
+import router from './router'
+import './styles/variables.css'
+import './styles/chat-neumorphism.css'
+import './styles/base.css'
+
+const app = createApp(App)
+
+app.use(createPinia())
+app.use(router)
+
+app.mount('#app')
