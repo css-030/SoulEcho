@@ -1,6 +1,6 @@
 import { getAppEnv } from '@/services/config/env'
 import type { MusicProvider } from '@/services/music/MusicProvider'
-import type { Track } from '@/types/music'
+import type { PlaylistCandidate, Track } from '@/types/music'
 
 interface NeteaseArtist {
   name?: string
@@ -24,7 +24,15 @@ interface NeteaseSong {
 interface NeteaseSearchResponse {
   result?: {
     songs?: NeteaseSong[]
+    playlists?: NeteasePlaylistSummary[]
   }
+}
+
+interface NeteasePlaylistSummary {
+  id?: number | string
+  name?: string
+  coverImgUrl?: string
+  trackCount?: number
 }
 
 interface NeteaseUrlResponse {
@@ -89,6 +97,26 @@ export class NeteaseProvider implements MusicProvider {
 
     const data = await this.fetchJson<NeteaseSearchResponse>(url)
     return (data.result?.songs ?? []).map(mapSongToTrack).filter((track): track is Track => track !== null)
+  }
+
+  async searchPlaylists(query: string): Promise<PlaylistCandidate[]> {
+    const url = this.createUrl('/cloudsearch')
+    url.searchParams.set('keywords', query)
+    url.searchParams.set('limit', '10')
+    url.searchParams.set('type', '1000')
+
+    const data = await this.fetchJson<NeteaseSearchResponse>(url)
+    return (data.result?.playlists ?? [])
+      .filter((playlist): playlist is Required<Pick<NeteasePlaylistSummary, 'id' | 'name'>> & NeteasePlaylistSummary =>
+        playlist.id !== undefined && Boolean(playlist.name)
+      )
+      .map((playlist) => ({
+        id: String(playlist.id),
+        source: 'netease',
+        title: playlist.name,
+        thumbnailUrl: playlist.coverImgUrl,
+        trackCount: playlist.trackCount
+      }))
   }
 
   async getPlayUrl(trackId: string): Promise<string> {

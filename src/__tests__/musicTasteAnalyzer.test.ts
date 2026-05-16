@@ -32,5 +32,31 @@ describe('MusicTasteAnalyzer', () => {
     expect(applyMusicTasteToQuery('relaxing live radio', profile)).toContain('SZA')
     expect(applyMusicTasteToQuery('SZA relaxing live radio', profile)).toBe('SZA relaxing live radio')
   })
-})
 
+  it('can apply only style hints for background music searches', () => {
+    const profile = analyzeMusicTaste([{ title: 'Good Days', artists: ['SZA'] }], { now: 123 })
+    const query = applyMusicTasteToQuery('relaxing live radio', profile, 'styles_only')
+
+    expect(query).toContain('R&B')
+    expect(query).toContain('Neo Soul')
+    expect(query).not.toContain('SZA')
+  })
+
+  it('keeps user-requested genre searches inside the requested genre family', () => {
+    const profile = analyzeMusicTaste(
+      [
+        { title: 'Good Days', artists: ['SZA'] },
+        { title: 'Blue in Green', artists: ['Miles Davis'] },
+        { title: 'lofi rain', artists: ['Lo-fi Girl'] }
+      ],
+      { now: 123 }
+    )
+    const query = applyMusicTasteToQuery('R&B live radio', profile, 'contextual_styles')
+
+    expect(query).toContain('R&B')
+    expect(query).toContain('Neo Soul')
+    expect(query).not.toContain('SZA')
+    expect(query).not.toContain('Jazz')
+    expect(query).not.toContain('Lo-fi')
+  })
+})

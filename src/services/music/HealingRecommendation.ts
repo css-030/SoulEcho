@@ -13,6 +13,12 @@ export interface HealingRecommendation {
   qualities: string[]
 }
 
+interface HealingSearchTerms {
+  primary: string[]
+  ambient: string[]
+  broad: string[]
+}
+
 const BASE_RECOMMENDATION: Record<WuxingType, Omit<HealingRecommendation, 'primaryWuxing'>> = {
   wood: {
     mode: '角调',
@@ -38,6 +44,37 @@ const BASE_RECOMMENDATION: Record<WuxingType, Omit<HealingRecommendation, 'prima
     mode: '羽调',
     instruments: ['雨声', '海浪', '低频钟'],
     qualities: ['安神', '助眠']
+  }
+}
+
+// These terms are for NetEase retrieval only. Internal wuxing reasoning keeps the
+// richer mode/quality vocabulary above, but catalog search works better with
+// concrete listener-facing words.
+const NETEASE_SEARCH_TERMS: Record<WuxingType, HealingSearchTerms> = {
+  wood: {
+    primary: ['古琴', '流水'],
+    ambient: ['竹笛'],
+    broad: ['古琴', '轻音乐']
+  },
+  fire: {
+    primary: ['古筝', '舒缓'],
+    ambient: ['风铃'],
+    broad: ['古筝', '轻音乐']
+  },
+  earth: {
+    primary: ['埙', '放松'],
+    ambient: ['低音鼓'],
+    broad: ['冥想', '轻音乐']
+  },
+  metal: {
+    primary: ['箫', '安静'],
+    ambient: ['编钟'],
+    broad: ['箫', '轻音乐']
+  },
+  water: {
+    primary: ['雨声', '助眠'],
+    ambient: ['海浪'],
+    broad: ['雨声', '轻音乐']
   }
 }
 
@@ -93,9 +130,11 @@ export function buildHealingSearchQuery(wuxing: WuxingType, context: HealingReco
 
 export function buildHealingSearchQueries(wuxing: WuxingType, context: HealingRecommendationContext = {}): string[] {
   const recommendation = createHealingRecommendation(wuxing, context)
-  const richQuery = [recommendation.mode, ...recommendation.instruments, ...recommendation.qualities].join(' ')
-  const focusedQuery = [recommendation.mode, ...recommendation.instruments.slice(0, 2), ...recommendation.qualities.slice(0, 2)].join(' ')
-  const coreQuery = [recommendation.mode, ...recommendation.instruments.slice(0, 2)].join(' ')
+  const searchTerms = NETEASE_SEARCH_TERMS[wuxing]
+  const weatherTerms = recommendation.instruments.filter((instrument) => !searchTerms.primary.includes(instrument) && instrument === '雨声')
+  const contextualQuery = [...searchTerms.primary, ...weatherTerms].join(' ')
+  const coreQuery = searchTerms.primary.join(' ')
+  const broadQuery = searchTerms.broad.join(' ')
 
-  return [...new Set([richQuery, focusedQuery, coreQuery])]
+  return [...new Set([contextualQuery, coreQuery, broadQuery])]
 }

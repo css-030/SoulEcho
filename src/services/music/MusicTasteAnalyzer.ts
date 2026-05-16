@@ -142,8 +142,44 @@ export function analyzeMusicTaste(tracks: TasteTrackInput[], opts: { likedPlayli
   }
 }
 
-export function applyMusicTasteToQuery(query: string, profile?: MusicTasteProfile): string {
-  const bias = profile?.searchBias.trim()
+export type MusicTasteBiasMode = 'full' | 'styles_only' | 'contextual_styles'
+
+function buildStyleOnlyBias(profile: MusicTasteProfile): string {
+  return profile.styleTags.slice(0, 4).join(' ').trim()
+}
+
+function buildContextualStyleBias(query: string, profile: MusicTasteProfile): string {
+  const normalizedQuery = normalize(query)
+  const requestedStyleGroups: string[][] = []
+
+  if (/\br(&b|nb)\b/.test(normalizedQuery) || normalizedQuery.includes('soul')) {
+    requestedStyleGroups.push(['R&B', 'Neo Soul'])
+  }
+  if (normalizedQuery.includes('jazz')) {
+    requestedStyleGroups.push(['Jazz'])
+  }
+  if (normalizedQuery.includes('lofi') || normalizedQuery.includes('lo-fi')) {
+    requestedStyleGroups.push(['Lo-fi'])
+  }
+  if (normalizedQuery.includes('pop')) {
+    requestedStyleGroups.push(['华语流行'])
+  }
+
+  const allowedStyles = new Set(requestedStyleGroups.flat())
+  const relevantStyles = (allowedStyles.size > 0 ? profile.styleTags.filter((tag) => allowedStyles.has(tag)) : profile.styleTags.slice(0, 2)).filter(
+    (tag) => !normalizedQuery.includes(normalize(tag))
+  )
+  return relevantStyles.join(' ').trim()
+}
+
+export function applyMusicTasteToQuery(query: string, profile?: MusicTasteProfile, mode: MusicTasteBiasMode = 'full'): string {
+  const bias = profile
+    ? mode === 'styles_only'
+      ? buildStyleOnlyBias(profile)
+      : mode === 'contextual_styles'
+        ? buildContextualStyleBias(query, profile)
+        : profile.searchBias.trim()
+    : ''
   if (!bias) {
     return query
   }

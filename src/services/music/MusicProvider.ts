@@ -1,9 +1,11 @@
-import type { MusicSource, Track } from '@/types/music'
+import type { MusicSource, PlaylistCandidate, Track } from '@/types/music'
 
 export interface MusicProvider {
   readonly type: MusicSource
 
   search(query: string): Promise<Track[]>
+
+  searchPlaylists?(query: string): Promise<PlaylistCandidate[]>
 
   getPlayUrl(trackId: string): Promise<string>
 

@@ -21,10 +21,10 @@ describe('HealingRecommendation', () => {
     })
     expect(recommendation.instruments).toEqual(expect.arrayContaining(['雨声', '海浪', '低频钟']))
     expect(recommendation.qualities).toEqual(expect.arrayContaining(['安神', '助眠', '极轻', '清凉', '柔和']))
-    expect(query).toContain('羽调')
+    expect(query).not.toContain('羽调')
     expect(query).toContain('助眠')
     expect(query).toContain('雨声')
-    expect(query).toContain('清凉')
+    expect(query).not.toContain('清凉')
     expect(query).not.toContain('夜晚')
   })
 
@@ -39,9 +39,9 @@ describe('HealingRecommendation', () => {
     })
 
     expect(queries).toEqual([
-      '角调 古琴 流水 竹笛 雨声 疏肝 舒展 沉稳 柔和',
-      '角调 古琴 流水 疏肝 舒展',
-      '角调 古琴 流水'
+      '古琴 流水 雨声',
+      '古琴 流水',
+      '古琴 轻音乐'
     ])
   })
 })

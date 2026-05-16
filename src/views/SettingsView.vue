@@ -7,7 +7,6 @@ import { db, type ProfileEntity, type SettingsEntity } from '@/services/storage/
 import { useChatStore } from '@/stores/chat'
 import { useSettingsStore } from '@/stores/settings'
 import type { EmotionRecord } from '@/types/emotion'
-import type { FavoriteTrack } from '@/types/favorite'
 import type { Message } from '@/types/message'
 import type { MomoLength, MomoStyle, RecommendFrequency, SourceLock, UserSettings } from '@/types/settings'
 
@@ -332,7 +331,6 @@ async function exportLocalData(): Promise<void> {
     data: {
       messages: await db.messages.toArray(),
       emotions: await db.emotions.toArray(),
-      favorites: await db.favorites.toArray(),
       settings: await db.settings.toArray(),
       profile: await db.profile.toArray(),
       longTermMemory: await db.longTermMemory.toArray()
@@ -625,7 +623,6 @@ async function importLocalData(event: Event): Promise<void> {
       data: {
         messages?: unknown[]
         emotions?: unknown[]
-        favorites?: unknown[]
         settings?: unknown[]
         profile?: unknown[]
         longTermMemory?: unknown[]
@@ -636,10 +633,9 @@ async function importLocalData(event: Event): Promise<void> {
       throw new Error('Invalid SoulEcho backup')
     }
 
-    await db.transaction('rw', [db.messages, db.emotions, db.favorites, db.settings, db.profile, db.longTermMemory], async () => {
+    await db.transaction('rw', [db.messages, db.emotions, db.settings, db.profile, db.longTermMemory], async () => {
       await db.messages.bulkPut((data.messages ?? []) as Message[])
       await db.emotions.bulkPut((data.emotions ?? []) as EmotionRecord[])
-      await db.favorites.bulkPut((data.favorites ?? []) as FavoriteTrack[])
       await db.settings.bulkPut((data.settings ?? []) as SettingsEntity[])
       await db.profile.bulkPut((data.profile ?? []) as ProfileEntity[])
       await db.longTermMemory.bulkPut((data.longTermMemory ?? []) as Array<{ id: string; summary: string; updatedAt: number }>)
@@ -953,7 +949,7 @@ async function importLocalData(event: Event): Promise<void> {
           <section id="local-data" class="settings-section settings-section--danger" aria-labelledby="data-title">
             <div class="settings-section__intro">
               <h2 id="data-title">本地数据</h2>
-              <p>清空对话只会删除聊天消息；情绪花园、收藏和用户画像会保留。</p>
+              <p>清空对话只会删除聊天消息；情绪花园和用户画像会保留。</p>
             </div>
 
             <div class="settings-section__body">
@@ -975,7 +971,7 @@ async function importLocalData(event: Event): Promise<void> {
     <div v-if="isClearDialogOpen" class="dialog-backdrop" role="presentation">
       <section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="clear-title">
         <h2 id="clear-title">清空对话历史？</h2>
-        <p>聊天记录会从本地删除，但情绪记录、收藏和用户画像会继续保留。</p>
+        <p>聊天记录会从本地删除，但情绪记录和用户画像会继续保留。</p>
         <div class="confirm-dialog__actions">
           <button class="secondary-button" type="button" @click="isClearDialogOpen = false">取消</button>
           <button class="danger-button" type="button" @click="clearConversationHistory">确认清空</button>

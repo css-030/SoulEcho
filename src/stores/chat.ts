@@ -55,7 +55,6 @@ const MUSIC_INTENT_KEYWORDS = [
   '\u542c\u8fc7'
 ]
 const RECOMMENDATION_BATCH_SIZE = 5
-const STYLE_SHIFT_THRESHOLD = 3
 const HEALING_DECLINE_COOLDOWN_MS = 15 * 60 * 1000
 
 export const useChatStore = defineStore('chat', () => {
@@ -445,12 +444,7 @@ export const useChatStore = defineStore('chat', () => {
     const text = userText?.toLowerCase() ?? ''
     const previousQuery = findPreviousMusicSearchQuery()
     if (isReplacementMusicRequest(text) && previousQuery) {
-      const replacementCount = getConsecutiveReplacementCount()
-      if (replacementCount >= STYLE_SHIFT_THRESHOLD) {
-        return `${getBaseSearchQuery(previousQuery)} ${getReplacementSearchVariant()} live radio chill stream`.replace(/\s+/g, ' ').trim()
-      }
-
-      return previousQuery
+      return `${getBaseSearchQuery(previousQuery)} ${getReplacementSearchVariant()} live radio chill stream`.replace(/\s+/g, ' ').trim()
     }
 
     const styles = [
@@ -510,7 +504,14 @@ export const useChatStore = defineStore('chat', () => {
     const playerStore = usePlayerStore()
     const currentTrack = playerStore.currentTrack
     const usedTracks = [
-      ...messages.value.map((message) => message.musicRecommendation?.primaryTrack).filter((track): track is Track => Boolean(track)),
+      ...messages.value.flatMap((message) => {
+        const recommendation = message.musicRecommendation
+        if (!recommendation) {
+          return []
+        }
+
+        return recommendation.playlist?.tracks ?? (recommendation.primaryTrack ? [recommendation.primaryTrack] : [])
+      }),
       ...(currentTrack ? [currentTrack] : [])
     ]
     const usedIds = new Set(

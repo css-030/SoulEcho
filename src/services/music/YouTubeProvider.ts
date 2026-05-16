@@ -162,7 +162,7 @@ export class YouTubeProvider implements MusicProvider {
   private readonly apiKey?: string
 
   constructor(apiKey = getAppEnv().youtubeApiKey) {
-    this.apiKey = apiKey
+    this.apiKey = apiKey?.trim() || getAppEnv().youtubeApiKey
   }
 
   async search(query: string): Promise<Track[]> {

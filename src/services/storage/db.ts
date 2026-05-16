@@ -1,7 +1,6 @@
 import Dexie, { type Table } from 'dexie'
 
 import type { EmotionRecord } from '@/types/emotion'
-import type { FavoriteTrack } from '@/types/favorite'
 import type { Message } from '@/types/message'
 import type { UserProfile, UserSettings } from '@/types/settings'
 
@@ -12,7 +11,8 @@ export type ProfileEntity = UserProfile & { id: SingletonId }
 export class SoulEchoDB extends Dexie {
   messages!: Table<Message, string>
   emotions!: Table<EmotionRecord, string>
-  favorites!: Table<FavoriteTrack, string>
+  // Kept for legacy local databases created before the favorite feature was removed.
+  favorites!: Table<Record<string, unknown>, string>
   settings!: Table<SettingsEntity, SingletonId>
   profile!: Table<ProfileEntity, SingletonId>
   longTermMemory!: Table<{ id: string; summary: string; updatedAt: number }, string>

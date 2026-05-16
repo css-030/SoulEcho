@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed } from 'vue'
 
 import NeteasePlayer from '@/components/player/NeteasePlayer.vue'
 import YouTubePlayer from '@/components/player/YouTubePlayer.vue'
@@ -17,7 +17,6 @@ const youtubeUrl = computed(() => {
 const progressMax = computed(() => Math.max(playerStore.duration, playerStore.progress, 1))
 const progressPercent = computed(() => Math.min((playerStore.progress / progressMax.value) * 100, 100))
 const playButtonLabel = computed(() => (playerStore.state === 'playing' ? '暂停' : '播放'))
-const favoriteButtonLabel = computed(() => (playerStore.isCurrentFavorite ? '已收藏' : '收藏'))
 const healingButtonLabel = computed(() => '结束疗愈')
 const errorMessage = computed(() =>
   playerStore.source === 'youtube' ? 'This track cannot be played inside SoulEcho.' : 'This NetEase track is temporarily unavailable.'
@@ -80,9 +79,6 @@ function handleEndHealing(): void {
   playerStore.endHealingSession({ stopPlayback: true })
 }
 
-onMounted(() => {
-  void playerStore.initializeFavorites()
-})
 </script>
 
 <template>
@@ -100,9 +96,6 @@ onMounted(() => {
           <span class="player-expanded__source" :title="sourceLabel">{{ sourceLabel }}</span>
           <span v-if="wuxingLabel" class="player-expanded__wuxing">{{ wuxingLabel }}</span>
         </div>
-        <button class="player-expanded__favorite" type="button" :disabled="!playerStore.hasTrack" @click="playerStore.toggleFavorite">
-          {{ favoriteButtonLabel }}
-        </button>
         <button
           v-if="playerStore.isHealingMode"
           class="player-expanded__healing"
@@ -151,7 +144,7 @@ onMounted(() => {
         <button
           class="player-expanded__button"
           type="button"
-          :disabled="playerStore.isHealingMode || !playerStore.hasPreviousTrack"
+          :disabled="!playerStore.hasPreviousTrack"
           @click="playerStore.previous"
         >
           上一首
@@ -162,7 +155,7 @@ onMounted(() => {
         <button
           class="player-expanded__button"
           type="button"
-          :disabled="playerStore.isHealingMode || !playerStore.hasNextTrack"
+          :disabled="!playerStore.hasNextTrack"
           @click="playerStore.next"
         >
           下一首
@@ -280,7 +273,6 @@ onMounted(() => {
     opacity var(--duration-fast) var(--ease-out);
 }
 
-.player-expanded__favorite,
 .player-expanded__healing {
   min-width: 4.75rem;
   min-height: 2.25rem;
@@ -298,13 +290,11 @@ onMounted(() => {
     opacity var(--duration-fast) var(--ease-out);
 }
 
-.player-expanded__favorite:hover:not(:disabled),
 .player-expanded__healing:hover:not(:disabled) {
   background: color-mix(in srgb, var(--color-primary) 32%, var(--bg-card));
   color: var(--text-primary);
 }
 
-.player-expanded__favorite:disabled,
 .player-expanded__healing:disabled {
   cursor: not-allowed;
   opacity: 0.45;
