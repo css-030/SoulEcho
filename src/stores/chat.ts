@@ -4,15 +4,17 @@ import { computed, ref } from 'vue'
 import { getAppEnv } from '@/services/config/env'
 import { emotionAnalyzer } from '@/services/momo/EmotionAnalyzer'
 import { MomoService } from '@/services/momo/MomoService'
+import { sanitizeMusicRecommendationSay } from '@/services/momo/MusicResponseCopy'
 import { musicRouter } from '@/services/music/MusicRouter'
 import { emotionRepo } from '@/services/storage/repositories/EmotionRepo'
 import { messageRepo } from '@/services/storage/repositories/MessageRepo'
 import { profileRepo } from '@/services/storage/repositories/ProfileRepo'
+import { openWeatherService, WEATHER_UNAVAILABLE } from '@/services/weather/OpenWeatherService'
 import { usePlayerStore } from '@/stores/player'
 import { useSettingsStore } from '@/stores/settings'
 import type { Message } from '@/types/message'
 import type { MusicRecommendation, Track } from '@/types/music'
-import type { ChatContext, MomoResponse, WeatherInfo } from '@/types/momo'
+import type { ChatContext, MomoResponse } from '@/types/momo'
 import type { UserProfile } from '@/types/settings'
 import { WUXING_MAPPINGS, type WuxingType } from '@/types/wuxing'
 import { createId } from '@/utils/id'
@@ -27,11 +29,6 @@ function createTextMessage(role: 'user' | 'momo', content: string, meta?: Messag
     timestamp: Date.now(),
     meta
   }
-}
-
-const DEFAULT_WEATHER: WeatherInfo = {
-  description: '\u672a\u77e5',
-  casualSummary: '\u4eca\u5929\u7684\u5929\u6c14\u6211\u8fd8\u6ca1\u62ff\u5230\uff0c\u4f46\u6211\u4eec\u53ef\u4ee5\u5148\u7167\u987e\u6b64\u523b\u7684\u5fc3\u60c5\u3002'
 }
 
 const MUSIC_INTENT_KEYWORDS = [
@@ -58,7 +55,6 @@ const MUSIC_INTENT_KEYWORDS = [
   '\u542c\u8fc7'
 ]
 const RECOMMENDATION_BATCH_SIZE = 5
-const STYLE_SHIFT_THRESHOLD = 3
 const HEALING_DECLINE_COOLDOWN_MS = 15 * 60 * 1000
 
 export const useChatStore = defineStore('chat', () => {
@@ -95,7 +91,14 @@ export const useChatStore = defineStore('chat', () => {
 
     const settingsStore = useSettingsStore()
 
-    if (settingsStore.settings.recommendFrequency === 'never' || isSameDay(settingsStore.settings.lastGreetedAt, Date.now())) {
+    if (settingsStore.settings.recommendFrequency === 'never') {
+      return
+    }
+
+    if (
+      settingsStore.settings.recommendFrequency === 'once_per_day' &&
+      isSameDay(settingsStore.settings.lastGreetedAt, Date.now())
+    ) {
       return
     }
 
@@ -144,6 +147,42 @@ export const useChatStore = defineStore('chat', () => {
     healingMusicDeclinedAt.value = null
   }
 
+  async function triggerHealingScenarioTest(): Promise<void> {
+    const userMessage = createTextMessage('user', '我感觉我快爆炸了 我今天被老板骂了', {
+      emotionDetected: 'strong_negative',
+      emotionTag: 'wood'
+    })
+    const mapping = WUXING_MAPPINGS.wood
+    const healingMessage: Message = {
+      id: createId('healing-test'),
+      role: 'momo',
+      type: 'healing_invite',
+      content: '听起来你真的被顶到了。要不要先听点安静的音乐，让心里那股闷火有个地方慢慢落下来？',
+      timestamp: Date.now(),
+      healingTrigger: {
+        targetOrgan: mapping.organ,
+        targetWuxing: 'wood',
+        testContext: {
+          now: new Date('2026-05-15T18:30:00+08:00').getTime(),
+          weather: {
+            description: '小雨',
+            temperature: 28,
+            casualSummary: '测试场景：小雨'
+          }
+        }
+      },
+      meta: {
+        emotionDetected: 'strong_negative',
+        emotionTag: 'wood'
+      }
+    }
+
+    healingConversationActive.value = false
+    healingMusicDeclinedAt.value = null
+    await appendMessage(userMessage)
+    await appendMessage(healingMessage)
+  }
+
   async function appendMomoResponse(response: MomoResponse): Promise<void> {
     const recentUserMessage = [...orderedMessages.value].reverse().find((message) => message.role === 'user')
 
@@ -163,7 +202,8 @@ export const useChatStore = defineStore('chat', () => {
       return
     }
 
-    const momoMessage = createTextMessage('momo', response.say, {
+    const say = showMusicCard ? sanitizeMusicRecommendationSay(response.say, response.musicRecommendation) : response.say
+    const momoMessage = createTextMessage('momo', say, {
       emotionDetected: response.emotionDetected,
       emotionTag: response.emotionTag
     })
@@ -179,11 +219,16 @@ export const useChatStore = defineStore('chat', () => {
   async function buildContext(): Promise<ChatContext> {
     const settingsStore = useSettingsStore()
     const playerStore = usePlayerStore()
+    const env = getAppEnv()
+    const weather = await openWeatherService.getCurrentWeather({
+      apiKey: settingsStore.settings.openweatherApiKey || env.openweatherApiKey,
+      city: settingsStore.settings.openweatherDefaultCity || env.openweatherDefaultCity
+    })
 
     return {
       settings: settingsStore.settings,
       profile: profile.value,
-      weather: DEFAULT_WEATHER,
+      weather: weather || WEATHER_UNAVAILABLE,
       longTermMemory: profile.value.longTermMemory,
       recentEmotions: await emotionRepo.loadRecent(7),
       recentMessages: orderedMessages.value.slice(-12),
@@ -197,7 +242,8 @@ export const useChatStore = defineStore('chat', () => {
 
   function createMomoService(): MomoService {
     const env = getAppEnv()
-    return new MomoService(env.openaiApiKey)
+    const settingsStore = useSettingsStore()
+    return new MomoService(settingsStore.settings.openaiApiKey || env.openaiApiKey)
   }
 
   async function recordEmotionFromResponse(response: MomoResponse, contextMessageIds: string[]): Promise<void> {
@@ -215,7 +261,14 @@ export const useChatStore = defineStore('chat', () => {
       return
     }
 
-    const tracks = recommendation.primaryTrack || recommendation.playlist ? [] : await musicRouter.search(recommendation)
+    const settingsStore = useSettingsStore()
+    const tracks =
+      recommendation.primaryTrack || recommendation.playlist
+        ? []
+        : await musicRouter.search({
+            ...recommendation,
+            sourceLock: settingsStore.settings.sourceLock
+          })
     const batchTracks = recommendation.playlist ? recommendation.playlist.tracks : recommendation.primaryTrack ? [recommendation.primaryTrack] : selectRecommendationBatch(tracks)
     const primaryTrack = recommendation.primaryTrack ?? batchTracks[0]
     if (!primaryTrack && !recommendation.playlist) {
@@ -391,12 +444,7 @@ export const useChatStore = defineStore('chat', () => {
     const text = userText?.toLowerCase() ?? ''
     const previousQuery = findPreviousMusicSearchQuery()
     if (isReplacementMusicRequest(text) && previousQuery) {
-      const replacementCount = getConsecutiveReplacementCount()
-      if (replacementCount >= STYLE_SHIFT_THRESHOLD) {
-        return `${getBaseSearchQuery(previousQuery)} ${getReplacementSearchVariant()} live radio chill stream`.replace(/\s+/g, ' ').trim()
-      }
-
-      return previousQuery
+      return `${getBaseSearchQuery(previousQuery)} ${getReplacementSearchVariant()} live radio chill stream`.replace(/\s+/g, ' ').trim()
     }
 
     const styles = [
@@ -456,7 +504,14 @@ export const useChatStore = defineStore('chat', () => {
     const playerStore = usePlayerStore()
     const currentTrack = playerStore.currentTrack
     const usedTracks = [
-      ...messages.value.map((message) => message.musicRecommendation?.primaryTrack).filter((track): track is Track => Boolean(track)),
+      ...messages.value.flatMap((message) => {
+        const recommendation = message.musicRecommendation
+        if (!recommendation) {
+          return []
+        }
+
+        return recommendation.playlist?.tracks ?? (recommendation.primaryTrack ? [recommendation.primaryTrack] : [])
+      }),
       ...(currentTrack ? [currentTrack] : [])
     ]
     const usedIds = new Set(
@@ -536,6 +591,7 @@ export const useChatStore = defineStore('chat', () => {
     sendMessage,
     appendMessage,
     clearHistory,
+    triggerHealingScenarioTest,
     respondToHealingInvite
   }
 })

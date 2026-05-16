@@ -1,14 +1,15 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
+import { getAppEnv } from '@/services/config/env'
 import { musicRouter } from '@/services/music/MusicRouter'
-import { favoriteRepo } from '@/services/storage/repositories/FavoriteRepo'
+import { openWeatherService, WEATHER_UNAVAILABLE } from '@/services/weather/OpenWeatherService'
 import { useHealingStore } from '@/stores/healing'
-import type { FavoriteTrack } from '@/types/favorite'
+import { useSettingsStore } from '@/stores/settings'
 import { HEALING_ORGAN_BY_WUXING } from '@/types/healing'
 import type { Playlist, PlayerState, Track } from '@/types/music'
+import type { WeatherInfo } from '@/types/momo'
 import type { OrganType, WuxingType } from '@/types/wuxing'
-import { createId } from '@/utils/id'
 
 export const usePlayerStore = defineStore('player', () => {
   const state = ref<PlayerState>('idle')
@@ -24,21 +25,7 @@ export const usePlayerStore = defineStore('player', () => {
   const currentHealingOrgan = ref<OrganType | undefined>(undefined)
   const isExpanded = ref(false)
   const isPlaylistEnd = ref(false)
-  const favoriteTracks = ref<FavoriteTrack[]>([])
-
   const hasTrack = computed(() => currentTrack.value !== null)
-  const isCurrentFavorite = computed(() => {
-    const track = currentTrack.value
-    if (!track) {
-      return false
-    }
-
-    return favoriteTracks.value.some((favorite) => {
-      const sameYoutube = track.youtubeId && favorite.youtubeId === track.youtubeId
-      const sameNetease = track.neteaseId && favorite.neteaseId === track.neteaseId
-      return Boolean(sameYoutube || sameNetease)
-    })
-  })
   const hasNextTrack = computed(() => {
     const playlist = currentPlaylist.value
     return playlist ? currentIndex.value < playlist.tracks.length - 1 : false
@@ -79,13 +66,30 @@ export const usePlayerStore = defineStore('player', () => {
     await play(tracks[0])
   }
 
-  async function startHealingSession(wuxing: WuxingType): Promise<void> {
+  async function startHealingSession(
+    wuxing: WuxingType,
+    contextOverride?: {
+      now?: Date
+      weather?: WeatherInfo
+    }
+  ): Promise<void> {
     const healingStore = useHealingStore()
+    const settingsStore = useSettingsStore()
+    const env = getAppEnv()
     isHealingMode.value = true
     currentHealingOrgan.value = HEALING_ORGAN_BY_WUXING[wuxing]
     isPlaylistEnd.value = false
     healingStore.activate(wuxing)
-    const playlist = await musicRouter.getHealingPlaylist(wuxing)
+    const weather =
+      contextOverride?.weather ??
+      (await openWeatherService.getCurrentWeather({
+        apiKey: settingsStore.settings.openweatherApiKey || env.openweatherApiKey,
+        city: settingsStore.settings.openweatherDefaultCity || env.openweatherDefaultCity
+      }))
+    const playlist = await musicRouter.getHealingPlaylist(wuxing, {
+      now: contextOverride?.now ?? new Date(),
+      weather: weather || WEATHER_UNAVAILABLE
+    })
     await play(playlist)
   }
 
@@ -180,60 +184,6 @@ export const usePlayerStore = defineStore('player', () => {
     isPlaylistEnd.value = false
   }
 
-  async function initializeFavorites(): Promise<void> {
-    favoriteTracks.value = await favoriteRepo.loadAll()
-  }
-
-  async function toggleFavorite(): Promise<void> {
-    const track = currentTrack.value
-    if (!track) {
-      return
-    }
-
-    const existing = await favoriteRepo.findByTrackIds({
-      youtubeId: track.youtubeId,
-      neteaseId: track.neteaseId
-    })
-
-    if (existing) {
-      await favoriteRepo.delete(existing.id)
-      favoriteTracks.value = favoriteTracks.value.filter((favorite) => favorite.id !== existing.id)
-      return
-    }
-
-    const favorite: FavoriteTrack = {
-      id: createId('favorite'),
-      title: track.title,
-      artist: track.artist,
-      youtubeId: track.youtubeId,
-      neteaseId: track.neteaseId,
-      thumbnailUrl: track.thumbnailUrl,
-      addedAt: Date.now(),
-      wuxingTag: track.wuxingTag,
-      isHealingTrack: isHealingMode.value || track.source === 'netease'
-    }
-
-    await favoriteRepo.save(favorite)
-    favoriteTracks.value = [favorite, ...favoriteTracks.value]
-    void completeFavoriteCounterpart(favorite, track)
-  }
-
-  async function completeFavoriteCounterpart(favorite: FavoriteTrack, track: Track): Promise<void> {
-    const counterpart = await musicRouter.findCounterpart(track)
-    if (!counterpart) {
-      return
-    }
-
-    const updatedFavorite: FavoriteTrack = {
-      ...favorite,
-      youtubeId: favorite.youtubeId ?? counterpart.youtubeId,
-      neteaseId: favorite.neteaseId ?? counterpart.neteaseId
-    }
-
-    await favoriteRepo.save(updatedFavorite)
-    favoriteTracks.value = favoriteTracks.value.map((item) => (item.id === updatedFavorite.id ? updatedFavorite : item))
-  }
-
   async function setCurrentTrack(track: Track | null): Promise<void> {
     if (!track) {
       currentTrack.value = null
@@ -271,9 +221,7 @@ export const usePlayerStore = defineStore('player', () => {
     currentHealingOrgan,
     isExpanded,
     isPlaylistEnd,
-    favoriteTracks,
     hasTrack,
-    isCurrentFavorite,
     hasNextTrack,
     hasPreviousTrack,
     play,
@@ -292,8 +240,6 @@ export const usePlayerStore = defineStore('player', () => {
     setProgress,
     setDuration,
     handleTrackEnded,
-    handlePlaybackError,
-    initializeFavorites,
-    toggleFavorite
+    handlePlaybackError
   }
 })

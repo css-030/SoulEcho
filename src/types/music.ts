@@ -26,6 +26,14 @@ export interface Playlist {
   targetWuxing?: WuxingType
 }
 
+export interface PlaylistCandidate {
+  id: string
+  source: MusicSource
+  title: string
+  thumbnailUrl?: string
+  trackCount?: number
+}
+
 export interface MusicRecommendation {
   scenario: 'daily-bgm' | 'healing' | 'user-requested'
   source: MusicSource

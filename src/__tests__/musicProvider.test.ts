@@ -362,6 +362,204 @@ describe('MusicRouter', () => {
     expect(musicRouter.selectProvider({ type: 'healing' }).type).toBe('netease')
   })
 
+  it('falls back to the environment YouTube key when settings contain a blank key', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: [
+            {
+              id: { videoId: 'env-video' },
+              snippet: { title: 'Env Video', channelTitle: 'Env Channel' }
+            }
+          ]
+        })
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: [
+            {
+              id: 'env-video',
+              status: { embeddable: true, privacyStatus: 'public', uploadStatus: 'processed' }
+            }
+          ]
+        })
+      } as Response)
+
+    const provider = new YouTubeProvider('')
+    await provider.search('ambient city radio without local match')
+
+    expect(new URL(String(fetchMock.mock.calls[0][0])).searchParams.get('key')).toBeTruthy()
+  })
+
+  it('respects a YouTube source lock even for healing scenarios', () => {
+    expect(musicRouter.selectProvider({ type: 'healing', sourceLock: 'youtube_only' }).type).toBe('youtube')
+  })
+
+  it('respects a NetEase source lock for daily recommendations', () => {
+    expect(musicRouter.selectProvider({ type: 'daily-bgm', sourceLock: 'netease_only' }).type).toBe('netease')
+  })
+
+  it('configures YouTube provider with an editable api key', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: Array.from({ length: 5 }, (_, index) => ({
+            id: { videoId: `configured-video-${index}` },
+            snippet: { title: `Configured Video ${index}`, channelTitle: 'Configured Channel' }
+          }))
+        })
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: Array.from({ length: 5 }, (_, index) => ({
+            id: `configured-video-${index}`,
+            status: { embeddable: true, privacyStatus: 'public', uploadStatus: 'processed' }
+          }))
+        })
+      } as Response)
+    const router = new MusicRouter()
+
+    router.configureYouTube({ apiKey: 'settings-youtube-key' })
+    await router.search({ scenario: 'daily-bgm', searchQuery: 'ambient city radio without local match' })
+
+    expect(new URL(String(fetchMock.mock.calls[0][0])).searchParams.get('key')).toBe('settings-youtube-key')
+  })
+
+  it('adds style-only music taste hints to daily provider searches', async () => {
+    const searchMock = vi.fn(async (_query: string): Promise<Track[]> =>
+      Array.from({ length: 5 }, (_, index) => ({
+        id: `taste-track-${index}`,
+        source: 'youtube' as const,
+        title: `Taste Track ${index}`,
+        artist: 'YouTube',
+        duration: 0
+      }))
+    )
+    const router = new MusicRouter({
+      youtubeProvider: {
+        type: 'youtube',
+        search: searchMock,
+        getPlayUrl: async (trackId: string) => `youtube://${trackId}`,
+        getPlaylist: async () => []
+      }
+    })
+
+    router.configureMusicTasteProfile({
+      source: 'netease_liked',
+      updatedAt: 123,
+      sampledTrackCount: 2,
+      topArtists: ['SZA'],
+      styleTags: ['R&B'],
+      languageHints: ['英文'],
+      seedTracks: ['Good Days - SZA'],
+      searchBias: 'R&B SZA 英文 songs'
+    })
+    await router.search({ scenario: 'daily-bgm', searchQuery: 'relaxing live radio' })
+
+    expect(searchMock).toHaveBeenCalledWith('relaxing live radio R&B')
+  })
+
+  it('supplements sparse daily YouTube results with nearby background queries', async () => {
+    const searchMock = vi
+      .fn()
+      .mockResolvedValueOnce([
+        {
+          id: 'first-track',
+          source: 'youtube' as const,
+          title: 'First Track',
+          artist: 'YouTube',
+          duration: 0
+        }
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: 'second-track',
+          source: 'youtube' as const,
+          title: 'Second Track',
+          artist: 'YouTube',
+          duration: 0
+        },
+        {
+          id: 'third-track',
+          source: 'youtube' as const,
+          title: 'Third Track',
+          artist: 'YouTube',
+          duration: 0
+        }
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: 'fourth-track',
+          source: 'youtube' as const,
+          title: 'Fourth Track',
+          artist: 'YouTube',
+          duration: 0
+        },
+        {
+          id: 'fifth-track',
+          source: 'youtube' as const,
+          title: 'Fifth Track',
+          artist: 'YouTube',
+          duration: 0
+        }
+      ])
+    const router = new MusicRouter({
+      youtubeProvider: {
+        type: 'youtube',
+        search: searchMock,
+        getPlayUrl: async (trackId: string) => `youtube://${trackId}`,
+        getPlaylist: async () => []
+      }
+    })
+
+    const tracks = await router.search({ scenario: 'daily-bgm', searchQuery: 'R&B soul live radio chill stream' })
+
+    expect(searchMock).toHaveBeenNthCalledWith(1, 'R&B soul live radio chill stream')
+    expect(searchMock).toHaveBeenNthCalledWith(2, 'neo soul live radio chill stream')
+    expect(searchMock).toHaveBeenNthCalledWith(3, 'smooth r&b live radio chill stream')
+    expect(tracks.map((track) => track.id)).toEqual(['first-track', 'second-track', 'third-track', 'fourth-track', 'fifth-track'])
+  })
+
+  it('keeps user-requested searches within matching taste styles without forcing artists', async () => {
+    const searchMock = vi.fn(async (_query: string): Promise<Track[]> => [
+      {
+        id: 'taste-track',
+        source: 'youtube' as const,
+        title: 'Taste Track',
+        artist: 'YouTube',
+        duration: 0
+      }
+    ])
+    const router = new MusicRouter({
+      youtubeProvider: {
+        type: 'youtube',
+        search: searchMock,
+        getPlayUrl: async (trackId: string) => `youtube://${trackId}`,
+        getPlaylist: async () => []
+      }
+    })
+
+    router.configureMusicTasteProfile({
+      source: 'netease_liked',
+      updatedAt: 123,
+      sampledTrackCount: 2,
+      topArtists: ['SZA'],
+      styleTags: ['R&B'],
+      languageHints: ['英文'],
+      seedTracks: ['Good Days - SZA'],
+      searchBias: 'R&B SZA 英文 songs'
+    })
+    await router.search({ scenario: 'user-requested', searchQuery: 'relaxing live radio' })
+
+    expect(searchMock).toHaveBeenCalledWith('relaxing live radio R&B')
+  })
+
   it('wraps a track with a lazy play URL', async () => {
     const track: Track = {
       id: 'demo-video',
@@ -382,6 +580,7 @@ describe('MusicRouter', () => {
       neteaseProvider: {
         type: 'netease',
         search: async () => [],
+        searchPlaylists: async () => [],
         getPlaylist: async () => [
           {
             id: 'broken-track',
@@ -418,6 +617,169 @@ describe('MusicRouter', () => {
       id: 'playable-track',
       playUrl: 'https://music.example/playable.mp3'
     })
+  })
+
+  it('uses provider-friendly playlist search terms derived from healing attributes rather than raw context or music taste', async () => {
+    const searchPlaylistsMock = vi.fn(async () => [
+      {
+        id: 'healing-playlist',
+        source: 'netease' as const,
+        title: 'Healing Playlist'
+      }
+    ])
+    const router = new MusicRouter({
+      neteaseProvider: {
+        type: 'netease',
+        search: async () => [],
+        searchPlaylists: searchPlaylistsMock,
+        getPlaylist: async () => [
+          {
+            id: 'healing-track',
+            source: 'netease' as const,
+            title: 'Healing Track',
+            artist: 'NetEase',
+            duration: 120,
+            neteaseId: 'healing-track'
+          },
+          {
+            id: 'healing-track-2',
+            source: 'netease' as const,
+            title: 'Healing Track 2',
+            artist: 'NetEase',
+            duration: 120,
+            neteaseId: 'healing-track-2'
+          }
+        ],
+        getPlayUrl: async () => 'https://music.example/healing.mp3'
+      }
+    })
+
+    router.configureMusicTasteProfile({
+      source: 'netease_liked',
+      updatedAt: 123,
+      sampledTrackCount: 2,
+      topArtists: ['SZA'],
+      styleTags: ['R&B'],
+      languageHints: ['英文'],
+      seedTracks: ['Good Days - SZA'],
+      searchBias: 'R&B SZA 英文 songs'
+    })
+    await router.getHealingPlaylist('fire', {
+      now: new Date('2026-05-15T22:00:00+08:00'),
+      weather: { description: '小雨', temperature: 31, casualSummary: '广州现在小雨' }
+    })
+
+    const query = (searchPlaylistsMock.mock.calls as unknown as Array<[string]>)[0]?.[0] ?? ''
+    expect(query).toContain('古筝')
+    expect(query).toContain('雨声')
+    expect(query).not.toContain('徵调')
+    expect(query).not.toContain('助眠')
+    expect(query).not.toContain('夜晚')
+    expect(query).not.toContain('SZA')
+  })
+
+  it('retries healing searches with broader queries before using the configured fallback playlist', async () => {
+    const searchPlaylistsMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('rich query failed'))
+      .mockResolvedValueOnce([
+        {
+          id: 'healing-playlist',
+          source: 'netease' as const,
+          title: 'Healing Playlist'
+        }
+      ])
+    const getPlaylistMock = vi.fn(async () => [
+      {
+        id: 'healing-track',
+        source: 'netease' as const,
+        title: 'Healing Track',
+        artist: 'NetEase',
+        duration: 120,
+        neteaseId: 'healing-track'
+      },
+      {
+        id: 'healing-track-2',
+        source: 'netease' as const,
+        title: 'Healing Track 2',
+        artist: 'NetEase',
+        duration: 120,
+        neteaseId: 'healing-track-2'
+      }
+    ])
+    const router = new MusicRouter({
+      neteaseProvider: {
+        type: 'netease',
+        search: async () => [],
+        searchPlaylists: searchPlaylistsMock,
+        getPlaylist: getPlaylistMock,
+        getPlayUrl: async () => 'https://music.example/healing.mp3'
+      }
+    })
+
+    const playlist = await router.getHealingPlaylist('wood', {
+      now: new Date('2026-05-15T18:19:00+08:00'),
+      weather: { description: '小雨', temperature: 28, casualSummary: '广州现在小雨' }
+    })
+
+    expect(searchPlaylistsMock).toHaveBeenCalledTimes(2)
+    expect(searchPlaylistsMock).toHaveBeenNthCalledWith(1, '古琴 流水 雨声')
+    expect(searchPlaylistsMock).toHaveBeenNthCalledWith(2, '古琴 流水')
+    expect(getPlaylistMock).toHaveBeenCalledWith('healing-playlist')
+    expect(playlist.tracks[0]).toMatchObject({ id: 'healing-track' })
+    expect(playlist).toMatchObject({ id: 'healing-playlist', title: 'Healing Playlist' })
+  })
+
+  it('skips healing playlist candidates that do not contain enough playable tracks', async () => {
+    const router = new MusicRouter({
+      neteaseProvider: {
+        type: 'netease',
+        search: async () => [],
+        searchPlaylists: async () => [
+          { id: 'thin-playlist', source: 'netease', title: 'Thin Playlist' },
+          { id: 'usable-playlist', source: 'netease', title: 'Usable Playlist' }
+        ],
+        getPlaylist: async (playlistId: string) =>
+          playlistId === 'thin-playlist'
+            ? [
+                {
+                  id: 'only-track',
+                  source: 'netease',
+                  title: 'Only Track',
+                  artist: 'NetEase',
+                  duration: 120,
+                  neteaseId: 'only-track'
+                }
+              ]
+            : [
+                {
+                  id: 'first-track',
+                  source: 'netease',
+                  title: 'First Track',
+                  artist: 'NetEase',
+                  duration: 120,
+                  neteaseId: 'first-track'
+                },
+                {
+                  id: 'second-track',
+                  source: 'netease',
+                  title: 'Second Track',
+                  artist: 'NetEase',
+                  duration: 120,
+                  neteaseId: 'second-track'
+                }
+              ],
+        getPlayUrl: async (trackId: string) => `https://music.example/${trackId}.mp3`
+      }
+    })
+
+    const playlist = await router.getHealingPlaylist('wood')
+
+    expect(playlist).toMatchObject({
+      id: 'usable-playlist',
+      title: 'Usable Playlist'
+    })
+    expect(playlist.tracks.map((track) => track.id)).toEqual(['first-track', 'second-track'])
   })
 })
 
@@ -476,6 +838,29 @@ describe('NeteaseProvider', () => {
     await provider.search('demo')
 
     expect(new URL(String(fetchMock.mock.calls[0][0])).pathname).toBe('/cloudsearch')
+  })
+
+  it('uses cloudsearch playlist mode for NetEase playlist search', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        result: {
+          playlists: [{ id: 123, name: '古琴疗愈', coverImgUrl: 'https://example.com/playlist.jpg', trackCount: 20 }]
+        }
+      })
+    } as Response)
+
+    const provider = new NeteaseProvider('http://localhost:3000')
+    const playlists = await provider.searchPlaylists('古琴 流水')
+    const url = new URL(String(fetchMock.mock.calls[0][0]))
+
+    expect(url.pathname).toBe('/cloudsearch')
+    expect(url.searchParams.get('type')).toBe('1000')
+    expect(playlists[0]).toMatchObject({
+      id: '123',
+      source: 'netease',
+      title: '古琴疗愈'
+    })
   })
 
   it('requests standard bitrate NetEase play URLs', async () => {

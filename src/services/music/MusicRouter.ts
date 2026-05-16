@@ -1,10 +1,12 @@
 import { FALLBACK_LIBRARY } from '@/data/fallback-library'
 import { FallbackProvider } from '@/services/music/FallbackProvider'
+import { buildHealingSearchQueries, type HealingRecommendationContext } from '@/services/music/HealingRecommendation'
 import type { MusicProvider } from '@/services/music/MusicProvider'
+import { applyMusicTasteToQuery } from '@/services/music/MusicTasteAnalyzer'
 import { NeteaseProvider } from '@/services/music/NeteaseProvider'
 import { YouTubeProvider } from '@/services/music/YouTubeProvider'
 import type { MusicRecommendation, MusicSource, Playlist, Track } from '@/types/music'
-import type { SourceLock } from '@/types/settings'
+import type { MusicTasteProfile, SourceLock } from '@/types/settings'
 import type { WuxingType } from '@/types/wuxing'
 
 export interface PlayScenario {
@@ -14,14 +16,27 @@ export interface PlayScenario {
 }
 
 export class MusicRouter {
-  private readonly youtubeProvider: MusicProvider
-  private readonly neteaseProvider: MusicProvider
+  private youtubeProvider: MusicProvider
+  private neteaseProvider: MusicProvider
   private readonly fallbackProvider: FallbackProvider
+  private musicTasteProfile?: MusicTasteProfile
 
   constructor(opts: { youtubeProvider?: MusicProvider; neteaseProvider?: MusicProvider; fallbackProvider?: FallbackProvider } = {}) {
     this.youtubeProvider = opts.youtubeProvider ?? new YouTubeProvider()
     this.neteaseProvider = opts.neteaseProvider ?? new NeteaseProvider()
     this.fallbackProvider = opts.fallbackProvider ?? new FallbackProvider()
+  }
+
+  configureNetease(opts: { baseUrl: string; cookie?: string }): void {
+    this.neteaseProvider = new NeteaseProvider(opts.baseUrl, opts.cookie)
+  }
+
+  configureYouTube(opts: { apiKey?: string }): void {
+    this.youtubeProvider = new YouTubeProvider(opts.apiKey)
+  }
+
+  configureMusicTasteProfile(profile?: MusicTasteProfile): void {
+    this.musicTasteProfile = profile
   }
 
   selectProvider(scenario: PlayScenario): MusicProvider {
@@ -52,10 +67,27 @@ export class MusicRouter {
     return this.youtubeProvider
   }
 
-  async search(recommendation: Pick<MusicRecommendation, 'scenario' | 'searchQuery' | 'targetWuxing'>): Promise<Track[]> {
-    const provider = this.selectProvider({ type: recommendation.scenario })
+  async search(recommendation: Pick<MusicRecommendation, 'scenario' | 'searchQuery' | 'targetWuxing'> & { sourceLock?: SourceLock }): Promise<Track[]> {
+    const provider = this.selectProvider({ type: recommendation.scenario, sourceLock: recommendation.sourceLock })
     const query = recommendation.searchQuery ?? recommendation.targetWuxing ?? 'lofi relaxing music'
-    return this.withFallback(() => provider.search(query), recommendation.targetWuxing)
+    return this.withFallback(async () => {
+      const primaryQuery = this.applyTaste(query, recommendation.scenario)
+      const primaryResults = await provider.search(primaryQuery)
+      if (recommendation.scenario !== 'daily-bgm' || provider.type !== 'youtube' || primaryResults.length >= 5) {
+        return primaryResults
+      }
+
+      const pooledResults = [...primaryResults]
+      for (const supplementalQuery of this.buildDailySupplementalQueries(primaryQuery)) {
+        const supplementalResults = await provider.search(supplementalQuery)
+        pooledResults.push(...supplementalResults)
+        if (this.dedupeTracks(pooledResults).length >= 5) {
+          break
+        }
+      }
+
+      return this.dedupeTracks(pooledResults)
+    }, recommendation.targetWuxing)
   }
 
   async getPlayableTrack(track: Track): Promise<Track> {
@@ -98,21 +130,49 @@ export class MusicRouter {
     }
   }
 
-  async getHealingPlaylist(wuxing: WuxingType): Promise<Playlist> {
+  async getHealingPlaylist(wuxing: WuxingType, context: HealingRecommendationContext = {}): Promise<Playlist> {
     const neteasePlaylist = FALLBACK_LIBRARY.netease.find((item) => item.wuxing === wuxing)
-    const playlistId = neteasePlaylist?.playlistId ?? wuxing
+    const fallbackPlaylistId = neteasePlaylist?.playlistId ?? wuxing
+    let selectedPlaylistId = fallbackPlaylistId
+    let selectedPlaylistTitle = this.getPlaylistTitle(wuxing)
     const tracks = await this.withFallback(
       async () => {
-        const playlistTracks = await this.neteaseProvider.getPlaylist(playlistId)
+        try {
+          for (const query of buildHealingSearchQueries(wuxing, context)) {
+            try {
+              const healingPlaylists = await this.neteaseProvider.searchPlaylists?.(query)
+              for (const playlist of healingPlaylists ?? []) {
+                try {
+                  const playlistTracks = await this.neteaseProvider.getPlaylist(playlist.id)
+                  const playableTracks = await this.resolvePlayableNeteaseTracks(
+                    playlistTracks.map((track) => ({ ...track, wuxingTag: track.wuxingTag ?? wuxing })),
+                    2
+                  )
+                  selectedPlaylistId = playlist.id
+                  selectedPlaylistTitle = playlist.title
+                  return playableTracks
+                } catch (error) {
+                  console.debug('[MusicRouter] healing playlist candidate failed', { query, playlistId: playlist.id, error })
+                }
+              }
+            } catch (error) {
+              console.debug('[MusicRouter] healing playlist search attempt failed', { query, error })
+            }
+          }
+        } catch (error) {
+          console.debug('[MusicRouter] context-based healing search failed, using configured healing playlist', error)
+        }
+
+        const playlistTracks = await this.neteaseProvider.getPlaylist(fallbackPlaylistId)
         return this.resolvePlayableNeteaseTracks(playlistTracks.map((track) => ({ ...track, wuxingTag: track.wuxingTag ?? wuxing })))
       },
       wuxing
     )
 
     return {
-      id: playlistId,
+      id: selectedPlaylistId,
       source: tracks[0]?.source ?? 'netease',
-      title: this.getPlaylistTitle(wuxing),
+      title: selectedPlaylistTitle,
       tracks,
       isHealingPlaylist: true,
       targetWuxing: wuxing
@@ -162,7 +222,7 @@ export class MusicRouter {
     }
   }
 
-  private async resolvePlayableNeteaseTracks(tracks: Track[]): Promise<Track[]> {
+  private async resolvePlayableNeteaseTracks(tracks: Track[], minimumPlayableCount = 1): Promise<Track[]> {
     const playableTracks: Track[] = []
     const targetPlayableCount = 5
 
@@ -186,11 +246,39 @@ export class MusicRouter {
       }
     }
 
-    if (playableTracks.length > 0) {
+    if (playableTracks.length >= minimumPlayableCount) {
       return playableTracks
     }
 
     throw new Error('No playable NetEase healing tracks')
+  }
+
+  private applyTaste(query: string, scenario: MusicRecommendation['scenario']): string {
+    return applyMusicTasteToQuery(query, this.musicTasteProfile, scenario === 'daily-bgm' ? 'styles_only' : 'contextual_styles')
+  }
+
+  private buildDailySupplementalQueries(query: string): string[] {
+    const normalized = query.toLowerCase()
+    const isRnbLike = normalized.includes('r&b') || normalized.includes('rnb') || normalized.includes('soul')
+    if (isRnbLike) {
+      return ['neo soul live radio chill stream', 'smooth r&b live radio chill stream', 'soulful chill radio stream']
+    }
+
+    return ['ambient live radio chill stream', 'study music live radio', 'relaxing background music stream']
+  }
+
+  private dedupeTracks(tracks: Track[]): Track[] {
+    const seen = new Set<string>()
+    return tracks.filter((track) => {
+      const ids = [track.id, track.youtubeId, track.neteaseId].filter((id): id is string => Boolean(id))
+      const key = ids[0] ?? `${track.source}:${track.artist}:${track.title}`
+      if (seen.has(key)) {
+        return false
+      }
+
+      seen.add(key)
+      return true
+    })
   }
 
   private getPlaylistTitle(playlistId: string): string {

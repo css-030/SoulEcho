@@ -3,6 +3,37 @@ import type { UserSettings } from '@/types/settings'
 
 import { db, type SettingsEntity } from '../db'
 
+function toStoredSettings(settings: UserSettings): UserSettings {
+  return {
+    userNickname: settings.userNickname,
+    momoName: settings.momoName,
+    momoStyle: settings.momoStyle,
+    momoLength: settings.momoLength,
+    recommendFrequency: settings.recommendFrequency,
+    sourceLock: settings.sourceLock,
+    openaiApiKey: settings.openaiApiKey,
+    youtubeApiKey: settings.youtubeApiKey,
+    neteaseApiUrl: settings.neteaseApiUrl,
+    neteaseCookie: settings.neteaseCookie,
+    openweatherApiKey: settings.openweatherApiKey,
+    openweatherDefaultCity: settings.openweatherDefaultCity,
+    musicTasteProfile: settings.musicTasteProfile
+      ? {
+          source: settings.musicTasteProfile.source,
+          updatedAt: settings.musicTasteProfile.updatedAt,
+          sampledTrackCount: settings.musicTasteProfile.sampledTrackCount,
+          likedPlaylistId: settings.musicTasteProfile.likedPlaylistId,
+          topArtists: [...settings.musicTasteProfile.topArtists],
+          styleTags: [...settings.musicTasteProfile.styleTags],
+          languageHints: [...settings.musicTasteProfile.languageHints],
+          seedTracks: [...settings.musicTasteProfile.seedTracks],
+          searchBias: settings.musicTasteProfile.searchBias
+        }
+      : undefined,
+    lastGreetedAt: settings.lastGreetedAt
+  }
+}
+
 export class SettingRepo {
   getDefault(): UserSettings {
     const env = getAppEnv()
@@ -14,7 +45,11 @@ export class SettingRepo {
       momoLength: 'medium',
       recommendFrequency: 'every_open',
       sourceLock: 'auto',
+      openaiApiKey: env.openaiApiKey,
+      youtubeApiKey: env.youtubeApiKey,
       neteaseApiUrl: env.neteaseApiUrl,
+      openweatherApiKey: env.openweatherApiKey,
+      openweatherDefaultCity: env.openweatherDefaultCity,
       lastGreetedAt: 0
     }
   }
@@ -35,7 +70,7 @@ export class SettingRepo {
   async save(settings: UserSettings): Promise<void> {
     const entity: SettingsEntity = {
       id: 'singleton',
-      ...settings
+      ...toStoredSettings(settings)
     }
 
     await db.settings.put(entity)
