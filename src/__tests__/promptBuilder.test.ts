@@ -68,6 +68,47 @@ describe('PromptBuilder', () => {
     expect(prompt).toContain('不要说“我不能直接播放音乐”')
   })
 
+  it('makes lively girl visibly distinct from calmer styles', () => {
+    const prompt = new PromptBuilder().buildChatSystemPrompt(
+      createContext({
+        settings: {
+          ...createContext().settings,
+          momoStyle: 'lively_girl'
+        }
+      })
+    )
+
+    expect(prompt).toContain('可爱但不吵闹的元气少女')
+    expect(prompt).toContain('可以偶尔自然使用少量颜文字')
+    expect(prompt).toContain('也可以偶尔带一点轻盈、日常的 emoji')
+    expect(prompt).toContain('遇到沉重情绪时要先收住活泼')
+  })
+
+  it('tells momo to prioritize the current persona over stale recent tone', () => {
+    const prompt = new PromptBuilder().buildChatSystemPrompt(createContext())
+
+    expect(prompt).toContain('当前人格设定优先级高于最近几轮对话里残留的旧语气')
+    expect(prompt).toContain('不要延续上一种人格的符号习惯、口头禅或节奏')
+  })
+
+  it('adds plain-language healing explanation guidance for calm doctor', () => {
+    const prompt = new PromptBuilder().buildChatSystemPrompt(
+      createContext({
+        settings: {
+          ...createContext().settings,
+          momoStyle: 'calm_doctor'
+        }
+      })
+    )
+
+    expect(prompt).toContain('安静医师在疗愈推荐时的表达')
+    expect(prompt).toContain('疗愈邀请卡只负责先接住情绪、邀请用户开始')
+    expect(prompt).toContain('不要说“你哪个脏器坏了 / 出问题了”')
+    expect(prompt).toContain('先说当前情绪更贴近哪一类五行')
+    expect(prompt).toContain('不要承诺疗效')
+    expect(prompt).toContain('这里只做邀请，不要提前解释五行、脏腑、调式或为什么选这类音乐')
+  })
+
   it('includes message timestamps in recent conversation context', () => {
     const prompt = new PromptBuilder().buildChatSystemPrompt(
       createContext({

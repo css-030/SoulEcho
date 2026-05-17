@@ -106,7 +106,7 @@ const secretVisibility = reactive<Record<SecretField, boolean>>({
 })
 
 const navItems: SettingsNavItem[] = [
-  { id: 'identity', label: '称呼', hint: '你和 momo 的名字' },
+  { id: 'identity', label: '称呼', hint: 'momo 怎么称呼你' },
   { id: 'persona', label: '说话方式', hint: '风格与回复长度' },
   { id: 'behavior', label: '推荐行为', hint: '主动问候与音乐源' },
   { id: 'local-services', label: '本地服务', hint: 'Key、Cookie、API 地址' },
@@ -115,8 +115,8 @@ const navItems: SettingsNavItem[] = [
 
 const momoStyleChoices: Choice<MomoStyle>[] = [
   { value: 'gentle_sister', label: '温柔姐姐', hint: '轻轻接住情绪，适合日常陪伴' },
-  { value: 'lively_girl', label: '元气少女', hint: '更明亮一点，适合需要被带动时' },
-  { value: 'calm_doctor', label: '安静医师', hint: '克制、稳定，少一点情绪化表达' },
+  { value: 'lively_girl', label: '元气少女', hint: '轻快可爱，偶尔会带颜文字和 emoji' },
+  { value: 'calm_doctor', label: '安静医师', hint: '克制稳定，疗愈时会多解释一点' },
   { value: 'neutral', label: '自然中性', hint: '少人设，更像普通朋友聊天' }
 ]
 
@@ -127,7 +127,7 @@ const momoLengthChoices: Choice<MomoLength>[] = [
 ]
 
 const recommendFrequencyChoices: Choice<RecommendFrequency>[] = [
-  { value: 'every_open', label: '每次打开', hint: 'momo 每次打开 app 都可以主动问候' },
+  { value: 'every_open', label: '每次打开', hint: 'momo 每次重新进入 app 时都可以主动问候' },
   { value: 'once_per_day', label: '每天一次', hint: '同一天只主动问候一次' },
   { value: 'never', label: '不主动', hint: '只在你发消息后回应' }
 ]
@@ -308,7 +308,7 @@ function normalizeSettings(value: UserSettings): UserSettings {
   return {
     ...value,
     userNickname: value.userNickname.trim() || '宝宝',
-    momoName: value.momoName.trim() || 'momo',
+    momoName: 'momo',
     neteaseApiUrl: value.neteaseApiUrl.trim() || 'http://localhost:3000',
     openaiApiKey: value.openaiApiKey?.trim() || undefined,
     youtubeApiKey: value.youtubeApiKey?.trim() || undefined,
@@ -318,11 +318,11 @@ function normalizeSettings(value: UserSettings): UserSettings {
   }
 }
 
-async function clearConversationHistory(): Promise<void> {
-  await chatStore.clearHistory()
-  await settingsStore.resetGreetingHistory()
-  isClearDialogOpen.value = false
-}
+  async function clearConversationHistory(): Promise<void> {
+    isClearDialogOpen.value = false
+    await settingsStore.resetGreetingHistory()
+    await chatStore.restartConversation()
+  }
 
 async function exportLocalData(): Promise<void> {
   const payload = {
@@ -689,18 +689,13 @@ async function importLocalData(event: Event): Promise<void> {
           <section id="identity" class="settings-section" aria-labelledby="identity-title">
             <div class="settings-section__intro">
               <h2 id="identity-title">称呼</h2>
-              <p>这些会直接进入 momo 的对话上下文，保存后下一句就会生效。</p>
+              <p>你希望 momo 怎么称呼你？保存后下一句就会生效。</p>
             </div>
 
             <div class="settings-section__body">
               <label class="field">
                 <span class="field__label">你的称呼</span>
                 <input v-model="draft.userNickname" class="field__control" type="text" autocomplete="nickname" />
-              </label>
-
-              <label class="field">
-                <span class="field__label">momo 的名字</span>
-                <input v-model="draft.momoName" class="field__control" type="text" autocomplete="off" />
               </label>
             </div>
           </section>

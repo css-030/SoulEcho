@@ -17,6 +17,24 @@ export function formatChatTime(timestamp: number): string {
   }).format(timestamp)
 }
 
+export function formatChatTimestamp(timestamp: number, now = Date.now()): string {
+  if (isSameDay(timestamp, now)) {
+    return formatChatTime(timestamp)
+  }
+
+  const messageDate = new Date(timestamp)
+  const nowDate = new Date(now)
+  const isSameYear = messageDate.getFullYear() === nowDate.getFullYear()
+
+  const date = new Intl.DateTimeFormat('zh-CN', {
+    ...(isSameYear ? {} : { year: 'numeric' }),
+    month: 'numeric',
+    day: 'numeric'
+  }).format(timestamp)
+
+  return `${date} ${formatChatTime(timestamp)}`
+}
+
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
     window.setTimeout(resolve, ms)

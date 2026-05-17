@@ -126,7 +126,7 @@ onUnmounted(() => {
           <p class="healing-space__eyebrow">SoulEcho</p>
           <h1 class="healing-space__title">疗愈空间 · {{ currentOrgan.label }}</h1>
         </div>
-        <button class="healing-space__exit" type="button" @click="leaveHealingSpace({ completeSession: true })">退出</button>
+        <button class="healing-space__exit" type="button" @click="leaveHealingSpace()">退出</button>
       </header>
 
       <div class="healing-space__canvas-wrap">

@@ -3,12 +3,14 @@ import { computed, ref } from 'vue'
 
 import { getAppEnv } from '@/services/config/env'
 import { emotionAnalyzer } from '@/services/momo/EmotionAnalyzer'
+import { getHealingStartCopy } from '@/services/momo/HealingResponseCopy'
 import { MomoService } from '@/services/momo/MomoService'
 import { sanitizeMusicRecommendationSay } from '@/services/momo/MusicResponseCopy'
 import { musicRouter } from '@/services/music/MusicRouter'
 import { emotionRepo } from '@/services/storage/repositories/EmotionRepo'
 import { messageRepo } from '@/services/storage/repositories/MessageRepo'
 import { profileRepo } from '@/services/storage/repositories/ProfileRepo'
+import { isStorageQuotaExceeded, STORAGE_QUOTA_MESSAGE } from '@/services/storage/storageErrors'
 import { openWeatherService, WEATHER_UNAVAILABLE } from '@/services/weather/OpenWeatherService'
 import { usePlayerStore } from '@/stores/player'
 import { useSettingsStore } from '@/stores/settings'
@@ -80,7 +82,11 @@ export const useChatStore = defineStore('chat', () => {
     hasGreetedToday.value = messages.value.some(
       (message) => message.role === 'momo' && message.meta?.emotionDetected === 'neutral' && isSameDay(message.timestamp, Date.now())
     )
-    await refreshLongTermMemory()
+    try {
+      await refreshLongTermMemory()
+    } catch (error) {
+      console.warn('[ChatStore] failed to refresh long-term memory', error)
+    }
     hasInitialized.value = true
   }
 
@@ -119,16 +125,27 @@ export const useChatStore = defineStore('chat', () => {
       return
     }
 
-    const userMessage = createTextMessage('user', trimmed)
-    await appendMessage(userMessage)
-    inputText.value = ''
-
-    isMomoTyping.value = true
     try {
+      const userMessage = createTextMessage('user', trimmed)
+      await appendMessage(userMessage)
+      inputText.value = ''
+
+      isMomoTyping.value = true
       const response = await createMomoService().chat(trimmed, await buildContext())
       await appendMomoResponse(response)
-    } catch {
-      await appendMessage(createTextMessage('momo', '\u6211\u521a\u624d\u6709\u70b9\u604d\u795e\uff0c\u518d\u8bf4\u4e00\u6b21\u597d\u5417\uff1f'))
+    } catch (error) {
+      const fallbackMessage = createTextMessage(
+        'momo',
+        isStorageQuotaExceeded(error)
+          ? STORAGE_QUOTA_MESSAGE
+          : '\u6211\u521a\u624d\u6709\u70b9\u604d\u795e\uff0c\u518d\u8bf4\u4e00\u6b21\u597d\u5417\uff1f'
+      )
+
+      if (isStorageQuotaExceeded(error)) {
+        messages.value.push(fallbackMessage)
+      } else {
+        await appendMessage(fallbackMessage)
+      }
     } finally {
       isMomoTyping.value = false
     }
@@ -145,6 +162,11 @@ export const useChatStore = defineStore('chat', () => {
     hasGreetedToday.value = false
     healingConversationActive.value = false
     healingMusicDeclinedAt.value = null
+  }
+
+  async function restartConversation(): Promise<void> {
+    await clearHistory()
+    void greetIfNeeded()
   }
 
   async function triggerHealingScenarioTest(): Promise<void> {
@@ -343,9 +365,10 @@ export const useChatStore = defineStore('chat', () => {
       healingMusicDeclinedAt.value = null
     }
 
+    const settingsStore = useSettingsStore()
     const content =
       action === 'start'
-        ? '我把音乐放上了。你不用一下子讲清楚全部，先从最堵的那一小块开始：刚刚让你最难受的是一句话、一个人，还是一件事？如果里面有委屈或怨气，也可以先把最不公平的那部分说出来。'
+        ? getHealingStartCopy(settingsStore.settings.momoStyle, targetWuxing)
         : '好，那我们先不放音乐。我还是在这里陪你慢慢拆开这团难受：现在最顶着你的，是委屈、愤怒，还是一种说不出来的累？'
 
     await appendMessage(
@@ -591,6 +614,7 @@ export const useChatStore = defineStore('chat', () => {
     sendMessage,
     appendMessage,
     clearHistory,
+    restartConversation,
     triggerHealingScenarioTest,
     respondToHealingInvite
   }
