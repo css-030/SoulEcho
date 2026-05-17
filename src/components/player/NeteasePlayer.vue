@@ -140,7 +140,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="netease-player">
-    <img v-if="coverUrl" class="netease-player__cover" :src="coverUrl" alt="" />
+    <img v-if="coverUrl" class="netease-player__cover" :src="coverUrl" alt="" loading="lazy" />
     <div v-else class="netease-player__disc" aria-hidden="true">
       <span class="netease-player__note">♪</span>
     </div>

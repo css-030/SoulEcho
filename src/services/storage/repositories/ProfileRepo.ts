@@ -25,7 +25,10 @@ export class ProfileRepo {
   async save(profile: UserProfile): Promise<void> {
     const entity: ProfileEntity = {
       id: 'singleton',
-      ...profile
+      musicPreferences: profile.musicPreferences,
+      likedTrackIds: [...profile.likedTrackIds],
+      longTermMemory: profile.longTermMemory,
+      longTermMemoryUpdatedAt: profile.longTermMemoryUpdatedAt
     }
 
     await db.profile.put(entity)

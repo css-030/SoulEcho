@@ -4,7 +4,7 @@ import { computed, ref } from 'vue'
 import HealingInviteCard from '@/components/chat/HealingInviteCard.vue'
 import MusicRecommendCard from '@/components/chat/MusicRecommendCard.vue'
 import type { Message } from '@/types/message'
-import { formatChatTime } from '@/utils/time'
+import { formatChatTimestamp } from '@/utils/time'
 
 interface Props {
   message: Message
@@ -16,7 +16,7 @@ const hasAvatarError = ref(false)
 
 const isUser = computed(() => props.message.role === 'user')
 const speakerName = computed(() => (isUser.value ? '你' : 'momo'))
-const messageTime = computed(() => formatChatTime(props.message.timestamp))
+const messageTime = computed(() => formatChatTimestamp(props.message.timestamp))
 const avatarSrc = computed(() => (isUser.value ? '/avatars/user-default.png' : '/avatars/momo-default.png'))
 const avatarText = computed(() => (isUser.value ? '你' : 'M'))
 
@@ -28,7 +28,7 @@ function handleAvatarError(): void {
 <template>
   <div class="message-row" :class="[`is-${message.role}`]">
     <div class="message-row__avatar" aria-hidden="true">
-      <img v-if="!hasAvatarError" :src="avatarSrc" :alt="`${speakerName} 头像`" @error="handleAvatarError" />
+      <img v-if="!hasAvatarError" :src="avatarSrc" :alt="`${speakerName} 头像`" loading="lazy" @error="handleAvatarError" />
       <span v-else>{{ avatarText }}</span>
     </div>
 

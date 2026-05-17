@@ -1,59 +1,78 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUpdated, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import MessageBubble from '@/components/chat/MessageBubble.vue'
 import MessageInput from '@/components/chat/MessageInput.vue'
 import { useChat } from '@/composables/useChat'
 import { useHealingStore } from '@/stores/healing'
-import { usePlayerStore } from '@/stores/player'
 import { useSettingsStore } from '@/stores/settings'
+import { getVirtualWindow } from '@/utils/virtualList'
 
-const { chatStore } = useChat()
+const { chatStore, isReady } = useChat()
 const router = useRouter()
 const healingStore = useHealingStore()
-const playerStore = usePlayerStore()
 const settingsStore = useSettingsStore()
 const messageListRef = ref<HTMLElement | null>(null)
-const isHealingTestStarting = ref(false)
+const scrollTop = ref(0)
+const viewportHeight = ref(0)
+const measuredHeights = ref<Record<string, number>>({})
+const ESTIMATED_MESSAGE_HEIGHT = 116
+const VIRTUAL_SCROLL_THRESHOLD = 100
 const healingButtonLabel = computed(() => (healingStore.isActive ? '进入疗愈空间' : '疗愈空间暂未开启'))
 const shouldShowApiGuide = computed(() => settingsStore.isLoaded && !settingsStore.hasOpenAiApiKey)
+const shouldVirtualize = computed(() => chatStore.orderedMessages.length > VIRTUAL_SCROLL_THRESHOLD)
+const virtualWindow = computed(() =>
+  getVirtualWindow({
+    itemCount: chatStore.orderedMessages.length,
+    scrollTop: scrollTop.value,
+    viewportHeight: viewportHeight.value,
+    getItemHeight: (index) => {
+      const message = chatStore.orderedMessages[index]
+      return message ? measuredHeights.value[message.id] ?? ESTIMATED_MESSAGE_HEIGHT : ESTIMATED_MESSAGE_HEIGHT
+    }
+  })
+)
+const visibleMessages = computed(() =>
+  shouldVirtualize.value
+    ? chatStore.orderedMessages.slice(virtualWindow.value.startIndex, virtualWindow.value.endIndex)
+    : chatStore.orderedMessages
+)
 
 async function scrollToBottom(): Promise<void> {
   await nextTick()
   if (messageListRef.value) {
     messageListRef.value.scrollTop = messageListRef.value.scrollHeight
+    updateScrollMetrics()
   }
+}
+
+function updateScrollMetrics(): void {
+  if (!messageListRef.value) {
+    return
+  }
+
+  scrollTop.value = messageListRef.value.scrollTop
+  viewportHeight.value = messageListRef.value.clientHeight
+}
+
+function measureVisibleMessages(): void {
+  if (!messageListRef.value) {
+    return
+  }
+
+  const nextHeights = { ...measuredHeights.value }
+  for (const node of messageListRef.value.querySelectorAll<HTMLElement>('[data-message-id]')) {
+    const id = node.dataset.messageId
+    if (id) {
+      nextHeights[id] = node.offsetHeight
+    }
+  }
+  measuredHeights.value = nextHeights
 }
 
 async function handleSubmit(): Promise<void> {
   await chatStore.sendMessage(chatStore.inputText)
-  await scrollToBottom()
-}
-
-async function playDailyBgm(): Promise<void> {
-  await playerStore.playPlaylistById('daily')
-}
-
-async function playNeteaseDemo(): Promise<void> {
-  await playerStore.playNeteaseSearch('流水 龚一')
-}
-
-async function startHealingDemo(): Promise<void> {
-  if (isHealingTestStarting.value) {
-    return
-  }
-
-  isHealingTestStarting.value = true
-  try {
-    await playerStore.startHealingSession('wood')
-  } finally {
-    isHealingTestStarting.value = false
-  }
-}
-
-async function triggerHealingScenarioTest(): Promise<void> {
-  await chatStore.triggerHealingScenarioTest()
   await scrollToBottom()
 }
 
@@ -73,8 +92,23 @@ watch(
   }
 )
 
-onMounted(() => {
+watch(
+  isReady,
+  async (ready) => {
+    if (ready) {
+      await scrollToBottom()
+    }
+  }
+)
+
+onMounted(async () => {
   document.body.dataset.scene = 'chat'
+  updateScrollMetrics()
+  await scrollToBottom()
+})
+
+onUpdated(() => {
+  measureVisibleMessages()
 })
 </script>
 
@@ -123,7 +157,7 @@ onMounted(() => {
         </div>
       </header>
 
-      <div ref="messageListRef" class="chat-view__messages">
+      <div ref="messageListRef" class="chat-view__messages" @scroll="updateScrollMetrics">
         <section v-if="shouldShowApiGuide" class="chat-view__api-guide" aria-label="OpenAI API Key 引导">
           <div>
             <strong>还没有配置 OpenAI API Key</strong>
@@ -132,7 +166,19 @@ onMounted(() => {
           <RouterLink class="chat-view__api-guide-action" to="/settings">去设置</RouterLink>
         </section>
 
-        <MessageBubble v-for="message in chatStore.orderedMessages" :key="message.id" :message="message" />
+        <div v-if="shouldVirtualize" class="chat-view__spacer" :style="{ height: `${virtualWindow.topSpacerHeight}px` }" aria-hidden="true" />
+
+        <div
+          v-for="message in visibleMessages"
+          :key="message.id"
+          class="chat-view__message-slot"
+          :class="`is-${message.role}`"
+          :data-message-id="message.id"
+        >
+          <MessageBubble :message="message" />
+        </div>
+
+        <div v-if="shouldVirtualize" class="chat-view__spacer" :style="{ height: `${virtualWindow.bottomSpacerHeight}px` }" aria-hidden="true" />
 
         <div v-if="chatStore.isMomoTyping" class="chat-view__typing">
           <span />
@@ -144,16 +190,6 @@ onMounted(() => {
       <MessageInput v-model="chatStore.inputText" :disabled="chatStore.isMomoTyping" @submit="handleSubmit" />
     </section>
 
-    <div class="chat-view__music-demos" aria-label="播放器测试入口">
-      <button class="chat-view__music-demo" type="button" @click="playDailyBgm">测试 YouTube 播放</button>
-      <button class="chat-view__music-demo" type="button" @click="playNeteaseDemo">测试网易云播放</button>
-      <button class="chat-view__music-demo" type="button" :disabled="isHealingTestStarting" @click="startHealingDemo">
-        {{ isHealingTestStarting ? '准备疗愈中' : '测试疗愈入口' }}
-      </button>
-      <button class="chat-view__music-demo" type="button" @click="triggerHealingScenarioTest">
-        测试爆炸情绪疗愈卡
-      </button>
-    </div>
   </main>
 </template>
 
@@ -369,38 +405,6 @@ onMounted(() => {
   color: var(--color-accent);
 }
 
-.chat-view__music-demos {
-  position: fixed;
-  right: calc(var(--space-lg) + 3.75rem);
-  bottom: calc(var(--space-lg) + 4.75rem);
-  z-index: 29;
-  display: flex;
-  gap: var(--space-sm);
-}
-
-.chat-view__music-demo {
-  min-height: 3rem;
-  padding: 0 var(--space-md);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: var(--bg-card);
-  color: var(--text-secondary);
-  box-shadow: var(--shadow-card);
-  cursor: pointer;
-  font-size: 0.875rem;
-  font-weight: 800;
-  transition:
-    background var(--duration-fast) var(--ease-out),
-    color var(--duration-fast) var(--ease-out),
-    transform var(--duration-fast) var(--ease-out);
-}
-
-.chat-view__music-demo:hover {
-  background: color-mix(in srgb, var(--color-primary) 32%, var(--bg-card));
-  color: var(--text-primary);
-  transform: translateY(-1px);
-}
-
 .chat-view__messages {
   display: flex;
   min-height: 0;
@@ -467,11 +471,6 @@ onMounted(() => {
   }
 }
 
-.chat-view__music-demo:disabled {
-  cursor: wait;
-  opacity: 0.68;
-}
-
 @keyframes healing-entry-pulse {
   0%,
   100% {
@@ -488,10 +487,6 @@ onMounted(() => {
 @media (prefers-reduced-motion: reduce) {
   .chat-view__messages {
     scroll-behavior: auto;
-  }
-
-  .chat-view__music-demo {
-    transition: none;
   }
 
   .chat-view__garden-entry,
@@ -535,15 +530,17 @@ onMounted(() => {
     flex-direction: column;
   }
 
-  .chat-view__music-demo {
-    padding: 0 var(--space-sm);
-  }
+}
 
-  .chat-view__music-demos {
-    right: calc(var(--space-md) + 3.5rem);
-    bottom: calc(var(--space-md) + 4.75rem);
-    max-width: calc(100vw - 6rem);
-    overflow-x: auto;
-  }
+.chat-view__spacer {
+  flex: 0 0 auto;
+}
+
+.chat-view__message-slot {
+  display: flex;
+}
+
+.chat-view__message-slot.is-user {
+  justify-content: flex-end;
 }
 </style>

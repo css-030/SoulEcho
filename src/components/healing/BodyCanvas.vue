@@ -46,6 +46,7 @@ function isOrganActive(organ: OrganType): boolean {
         class="body-canvas__base"
         :src="HEALING_BODY_ASSET"
         alt="身体与五脏轮廓"
+        loading="lazy"
         draggable="false"
         @error="handleImageError('whole')"
       />
@@ -64,6 +65,7 @@ function isOrganActive(organ: OrganType): boolean {
           v-else
           :src="organ.assetPath"
           :alt="organ.label"
+          loading="lazy"
           draggable="false"
           @error="handleImageError(organ.organ)"
         />

@@ -23,7 +23,7 @@ const errorMessage = computed(() =>
 )
 const sourceLabel = computed(() => {
   if (playerStore.source === 'netease') {
-    return '疗愈中 · 网易云'
+    return '网易云'
   }
 
   if (playerStore.source === 'fallback') {
@@ -93,6 +93,7 @@ function handleEndHealing(): void {
     <div class="player-expanded__content">
       <div class="player-expanded__topline">
         <div class="player-expanded__meta">
+          <span v-if="playerStore.isHealingMode" class="player-expanded__healing-badge">疗愈中</span>
           <span class="player-expanded__source" :title="sourceLabel">{{ sourceLabel }}</span>
           <span v-if="wuxingLabel" class="player-expanded__wuxing">{{ wuxingLabel }}</span>
         </div>
@@ -248,6 +249,20 @@ function handleEndHealing(): void {
   white-space: nowrap;
 }
 
+.player-expanded__healing-badge {
+  display: inline-flex;
+  min-height: 1.5rem;
+  align-items: center;
+  padding: 0 var(--space-sm);
+  border: 1px solid color-mix(in srgb, var(--color-wood) 58%, var(--color-border));
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-wood) 18%, var(--bg-card));
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
 .player-expanded__track {
   min-width: 0;
   max-width: 100%;
@@ -277,10 +292,10 @@ function handleEndHealing(): void {
   min-width: 4.75rem;
   min-height: 2.25rem;
   padding: 0 var(--space-md);
-  border: 1px solid var(--color-border);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 34%, var(--color-border));
   border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--bg-card) 78%, var(--bg-primary));
-  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--bg-card));
+  color: var(--text-primary);
   cursor: pointer;
   font-size: 0.875rem;
   font-weight: 900;
@@ -291,19 +306,13 @@ function handleEndHealing(): void {
 }
 
 .player-expanded__healing:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--color-primary) 32%, var(--bg-card));
+  background: color-mix(in srgb, var(--color-accent) 18%, var(--bg-card));
   color: var(--text-primary);
 }
 
 .player-expanded__healing:disabled {
   cursor: not-allowed;
   opacity: 0.45;
-}
-
-.player-expanded__healing {
-  border-color: color-mix(in srgb, var(--color-wood) 58%, var(--color-border));
-  background: color-mix(in srgb, var(--color-wood) 18%, var(--bg-card));
-  color: var(--text-primary);
 }
 
 .player-expanded__button {
