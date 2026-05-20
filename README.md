@@ -229,3 +229,13 @@ http://localhost:3000
 ### 天气上下文不可用
 
 确认已填写 `VITE_OPENWEATHER_API_KEY` 或在设置页中填写 OpenWeather API Key，并检查默认城市是否正确。
+
+## 许可证
+
+SoulEcho 使用 [MIT License](./LICENSE) 开放。
+
+欢迎你学习、fork、改造，或者在它的基础上做出属于你自己的版本。如果 SoulEcho 能启发新的作品，那会是一件很开心的事。
+
+第三方服务与依赖遵循其各自的许可证和服务条款。SoulEcho 不授予任何音乐内容、平台接口或第三方版权材料的使用权。
+
+SoulEcho 名称、momo 角色设定和视觉资产属于本项目的产品识别，请不要以容易让人误解为官方版本或官方背书的方式使用。

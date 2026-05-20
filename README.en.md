@@ -229,3 +229,13 @@ Make sure a valid OpenAI API key is set in `.env.local` or in Settings. After sa
 ### Weather context is unavailable
 
 Make sure `VITE_OPENWEATHER_API_KEY` is set, or add an OpenWeather API key in Settings. Also check that the default city is correct.
+
+## License
+
+SoulEcho is released under the [MIT License](./LICENSE).
+
+You are welcome to learn from it, fork it, remix it, and build your own version from it. If SoulEcho inspires something new, that would make me very happy.
+
+Third-party services and dependencies are governed by their own licenses and terms. SoulEcho does not grant any rights to music content, platform APIs, or third-party copyrighted materials.
+
+The SoulEcho name, momo character concept, and visual assets are part of this project's identity. Please avoid using them in a way that suggests an official product or endorsement.
