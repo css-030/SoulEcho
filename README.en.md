@@ -22,9 +22,13 @@ If you just want background music, momo can prepare a daily playlist. If a song 
 
 ### 3. Chinese wellness-inspired healing music
 
-When you feel heavy, irritated, exhausted, or close to breaking down, momo does more than offer a few comforting lines. It combines your emotional expression with time, weather, and Five Elements signals to decide what kind of healing music may fit the moment.
+SoulEcho's healing music is inspired by ideas from the *Huangdi Neijing*, especially the relationship between the five tones, the five organs, and the five emotional tendencies. It also borrows from the traditional meridian clock idea, where different times of day are associated with different rhythms of the body. In practice, momo does not only read that you are "sad" or "irritated"; it tries to understand emotion, body feeling, time, and musical atmosphere together.
 
-SoulEcho connects emotions with Wood, Fire, Earth, Metal, and Water, along with related body imagery and musical atmosphere. In the healing space, music, color, body visuals, and playback rhythm work together to help you slowly step out of the emotional storm.
+In this system, Wood, Fire, Earth, Metal, and Water correspond to liver, heart, spleen, lung, and kidney imagery, and also to emotional patterns such as anger, joy, overthinking, grief, and fear. The traditional tones jue, zhi, gong, shang, and yu are used as inspiration for different musical qualities. If you feel tense and suppressed, momo may lean toward guqin, flowing water, or bamboo flute textures to help the feeling loosen. If you feel unsafe late at night, momo may choose lower frequencies, rain sounds, or bell tones to help the body settle.
+
+momo also considers the current time and weather. Midday may call for gentler heart-nourishing rest, while late night is better suited to quiet grounding and sleep preparation. Rainy and sunny days can also lead to different listening choices. In the healing space, music, color, body visuals, and playback rhythm work together like a light cyber breathing ritual, helping you slowly step out of the emotional storm.
+
+> This is a product experience for emotional companionship and musical relaxation. It is not medical advice. If you are going through serious mental or physical distress, please seek professional help.
 
 ### 4. Emotion Garden: keep a gentle trace of each day
 
