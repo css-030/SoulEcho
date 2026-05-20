@@ -50,9 +50,23 @@ You can export a backup, import data later, or clear the chat history when you w
 npm install
 ```
 
-### 2. Configure environment variables
+### 2. Prepare API keys and cookies
 
-Copy `.env.example` to `.env.local`:
+You can fill in these values directly in SoulEcho's Settings page. For normal local use, `.env.local` is not required.
+
+| Item | Where to get it | What it is used for | Features it enables | Required? |
+| --- | --- | --- | --- | --- |
+| OpenAI API key | OpenAI Platform | Lets momo use an AI model to understand and respond to your messages | AI chat, emotion detection, music/healing suggestions, monthly summaries | Recommended |
+| OpenWeather API key | OpenWeather | Fetches current weather for your default city and gives momo weather context | Weather-aware chat, weather-sensitive healing music atmosphere | Optional |
+| YouTube API key | YouTube Data API v3 in Google Cloud | Enables real YouTube music search | YouTube music recommendations, daily playlist search | Optional; local fallback library is used when empty |
+| NetEase API URL | Your local `NeteaseCloudMusicApi` service, usually `http://localhost:3000` | Connects SoulEcho to the local NetEase API for search, playback metadata, and cookie checks | NetEase music search, healing playlists, liked-song reading | Required for NetEase-related features |
+| NetEase cookie | Your own NetEase logged-in browser session, entered only in local Settings | Lets the local NetEase API read account-specific playlists such as "Liked Songs" | Taste analysis for frequently listened artists, styles, and preferences | Required only if you want recommendations based on NetEase favorites |
+
+Only enter cookies in your own local environment. Do not commit `.env.local`, API keys, cookies, or tokens to GitHub, and do not share them with others.
+
+### 3. Optional: preset defaults with `.env.local`
+
+If you want to preset default values during development, or keep defaults available after clearing browser data, copy `.env.example` to `.env.local`:
 
 ```bash
 cp .env.example .env.local
@@ -64,7 +78,7 @@ On Windows PowerShell:
 Copy-Item .env.example .env.local
 ```
 
-Then fill in the values you need:
+Then fill in the default values you want to preset:
 
 ```env
 VITE_OPENAI_API_KEY=
@@ -75,18 +89,7 @@ VITE_YOUTUBE_API_KEY=
 VITE_DEBUG_MODE=false
 ```
 
-Field notes:
-
-- `VITE_OPENAI_API_KEY`: OpenAI API key for momo's AI conversation.
-- `VITE_NETEASE_API_URL`: Local NetEase API URL. Default is `http://localhost:3000`.
-- `VITE_OPENWEATHER_API_KEY`: OpenWeather API key for weather-aware chat context.
-- `VITE_OPENWEATHER_DEFAULT_CITY`: Default city for weather context.
-- `VITE_YOUTUBE_API_KEY`: Optional. Enables real YouTube search; when empty, SoulEcho uses a local fallback library.
-- `VITE_DEBUG_MODE`: Debug mode switch.
-
-Do not commit `.env.local`, `.env`, API keys, cookies, or tokens.
-
-### 3. Start the frontend
+### 4. Start the frontend
 
 ```bash
 npm run dev
@@ -100,7 +103,7 @@ http://localhost:5173
 
 If you only need chat, settings, Emotion Garden, and fallback YouTube music, the frontend is enough.
 
-### 4. Start the local NetEase API (optional)
+### 5. Start the local NetEase API (optional)
 
 If you want NetEase music, NetEase cookie checks, liked-song taste analysis, or healing playlists, open another terminal and run:
 
@@ -132,7 +135,7 @@ http://localhost:3000/search?keywords=healing%20music
 ## How to Use
 
 1. Open `http://localhost:5173`.
-2. Go to Settings and fill in your OpenAI API key. Add OpenWeather, YouTube, NetEase API, and NetEase cookie if needed.
+2. Go to Settings and fill in your OpenAI API key. Add OpenWeather, YouTube, NetEase API URL, and NetEase cookie if needed. The NetEase cookie is only used locally to read playlists such as your "Liked Songs" and help momo understand your music taste.
 3. Return to chat and talk with momo directly.
 4. If you want music, say things like "play some music", "change this song", or "give me some R&B".
 5. When momo offers a healing session, you can enter the healing space.
