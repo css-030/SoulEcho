@@ -1,0 +1,2302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SoulEcho PM 交互原型 v2.0</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --pink-bg: #f4eaf1;
+    --pink-bg-2: #eadde7;
+    --pink-card: #f2e8ef;
+    --pink-card-2: rgba(255,255,255,.58);
+    --pink-border: rgba(255,255,255,.72);
+    --pink-text: #6d264f;
+    --pink-sub: #9b3f72;
+    --pink-soft: #8a426a;
+    --pink-accent: #c65393;
+    --pink-accent-2: #eaa2c8;
+    --wood: #22c55e;
+    --fire: #fb7185;
+    --earth: #fbbf24;
+    --metal: #e5e7eb;
+    --water: #60a5fa;
+    --purple-bg: #1e1b4b;
+    --purple-bg-2: #2e1065;
+    --purple-card: rgba(30,27,75,.58);
+    --purple-border: rgba(167,139,250,.28);
+    --purple-text: #f3e8ff;
+    --purple-sub: #c4b5fd;
+    --purple-accent: #a78bfa;
+    --shell: #101016;
+    --shadow-soft: 8px 8px 18px rgba(179,142,164,.35), -8px -8px 18px rgba(255,255,255,.72);
+    --shadow-float: 0 20px 60px rgba(24,14,36,.22);
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 22px;
+    --radius-xl: 30px;
+    --radius-pill: 999px;
+  }
+
+  body {
+    min-height: 100vh;
+    margin: 0;
+    background:
+      radial-gradient(circle at 18% 14%, rgba(198,83,147,.16), transparent 30%),
+      radial-gradient(circle at 82% 18%, rgba(96,165,250,.14), transparent 32%),
+      #f8f3f7;
+    color: #301428;
+    font-family: "Noto Sans SC", "Microsoft YaHei", Arial, sans-serif;
+  }
+
+  button, input, textarea { font: inherit; }
+  button { cursor: pointer; }
+
+  .workspace {
+    display: grid;
+    grid-template-columns: minmax(320px, 430px) minmax(320px, 1fr);
+    gap: 32px;
+    align-items: start;
+    width: min(1180px, calc(100vw - 48px));
+    margin: 0 auto;
+    padding: 32px 0;
+  }
+
+  .phone-shell {
+    position: sticky;
+    top: 24px;
+    width: min(390px, 100%);
+    height: min(844px, calc(100vh - 48px));
+    min-height: 720px;
+    overflow: hidden;
+    border: 10px solid var(--shell);
+    border-radius: 46px;
+    background: var(--pink-bg);
+    box-shadow: 0 28px 80px rgba(35,20,38,.24);
+  }
+
+  .phone-shell::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    z-index: 20;
+    width: 116px;
+    height: 24px;
+    border-radius: 0 0 18px 18px;
+    background: var(--shell);
+    transform: translateX(-50%);
+  }
+
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: none;
+    overflow: hidden;
+  }
+
+  .screen.is-active { display: block; }
+
+  .app-surface {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    height: 100%;
+    padding: 42px 18px 18px;
+    background: linear-gradient(135deg, var(--pink-bg), var(--pink-bg-2));
+    color: var(--pink-text);
+  }
+
+  .app-surface.is-healing {
+    padding: 42px 20px 22px;
+    background:
+      radial-gradient(circle at 50% 32%, rgba(34,197,94,.28), transparent 28%),
+      radial-gradient(circle at 70% 78%, rgba(167,139,250,.18), transparent 32%),
+      linear-gradient(135deg, #1e1b4b, #2e1065 62%, #17142f);
+    color: var(--purple-text);
+  }
+
+  .app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 54px;
+    margin-bottom: 14px;
+  }
+
+  .title-block small {
+    display: block;
+    margin-bottom: 2px;
+    color: var(--pink-soft);
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .title-block h1 {
+    margin: 0;
+    color: var(--pink-text);
+    font-size: 24px;
+    line-height: 1.15;
+    letter-spacing: 0;
+  }
+
+  .is-healing .title-block small,
+  .is-healing .title-block h1 {
+    color: var(--purple-text);
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .round-btn {
+    display: grid;
+    width: 44px;
+    height: 44px;
+    place-items: center;
+    border: 1px solid var(--pink-border);
+    border-radius: var(--radius-pill);
+    background: var(--pink-card);
+    color: var(--pink-sub);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .round-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.9; }
+
+  .round-btn.is-healing {
+    color: var(--wood);
+    background: color-mix(in srgb, var(--wood) 9%, var(--pink-card));
+  }
+
+  .back-btn {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    min-height: 40px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-weight: 800;
+  }
+
+  .scroll-area {
+    min-height: 0;
+    overflow: auto;
+    padding: 2px 4px 88px;
+    scrollbar-width: none;
+  }
+
+  .scroll-area::-webkit-scrollbar { display: none; }
+
+  .api-guide {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    margin: 4px 0 18px;
+    padding: 14px;
+    border: 1px solid rgba(198,83,147,.18);
+    border-radius: 18px;
+    background: rgba(255,255,255,.48);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .api-guide strong {
+    display: block;
+    color: var(--pink-text);
+    font-size: 14px;
+  }
+
+  .api-guide span {
+    display: block;
+    margin-top: 2px;
+    color: var(--pink-sub);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .primary-pill {
+    min-height: 38px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: linear-gradient(145deg, #f3b3d4, #ca6aa6);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 900;
+    box-shadow: 4px 4px 12px rgba(179,142,164,.28), -4px -4px 12px rgba(255,255,255,.65);
+  }
+
+  .message-list {
+    display: grid;
+    gap: 16px;
+  }
+
+  .message-row {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 10px;
+    align-items: end;
+    max-width: 88%;
+  }
+
+  .message-row.is-wide {
+    max-width: 98%;
+  }
+
+  .message-row.is-user {
+    grid-template-columns: minmax(0, 1fr) 42px;
+    justify-self: end;
+  }
+
+  .avatar {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    border: 1px solid var(--pink-border);
+    border-radius: var(--radius-pill);
+    background: var(--pink-card);
+    color: var(--pink-accent);
+    font-size: 13px;
+    font-weight: 900;
+    box-shadow: var(--shadow-soft);
+    overflow: hidden;
+  }
+
+  .avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .message-row.is-user .avatar {
+    grid-column: 2;
+    color: white;
+    background: var(--pink-accent-2);
+  }
+
+  .bubble {
+    padding: 12px 14px;
+    border: 1px solid var(--pink-border);
+    border-radius: 20px;
+    border-bottom-left-radius: 8px;
+    background: var(--pink-card);
+    color: var(--pink-text);
+    line-height: 1.68;
+    box-shadow: var(--shadow-soft);
+  }
+
+  .message-row.is-user .bubble {
+    grid-column: 1;
+    grid-row: 1;
+    border-bottom-right-radius: 8px;
+    border-bottom-left-radius: 20px;
+    background: linear-gradient(145deg, #eaa2c8, #c65393);
+    color: white;
+  }
+
+  .bubble-meta {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 4px;
+    color: var(--pink-soft);
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  .message-row.is-user .bubble-meta { color: rgba(255,255,255,.86); }
+  .bubble p { margin: 0; font-size: 14px; }
+
+  .music-card,
+  .healing-invite {
+    width: min(100%, 282px);
+    padding: 14px;
+    border: 1px solid var(--pink-border);
+    border-radius: 22px;
+    background: var(--pink-card);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .music-card {
+    display: grid;
+    grid-template-columns: 54px minmax(0, 1fr) 42px;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .music-card.is-daily {
+    border-color: rgba(198,83,147,.14);
+    background: rgba(255,255,255,.42);
+  }
+
+  .playlist-card {
+    width: min(100%, 320px);
+    padding: 14px;
+    border: 1px solid var(--pink-border);
+    border-left: 3px solid var(--wood);
+    border-radius: 22px;
+    background: rgba(255,255,255,.44);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .playlist-card__top {
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr) 42px;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .playlist-card__cover {
+    display: grid;
+    width: 52px;
+    height: 52px;
+    place-items: center;
+    overflow: hidden;
+    border-radius: 15px;
+    background: linear-gradient(145deg, #d7f4df, #f1b6d7);
+    color: var(--pink-text);
+    font-size: 13px;
+    font-weight: 900;
+  }
+
+  .playlist-card__title {
+    margin: 0;
+    color: var(--pink-text);
+    font-size: 14px;
+    font-weight: 900;
+    line-height: 1.25;
+  }
+
+  .playlist-card__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 6px;
+  }
+
+  .playlist-card__tag {
+    padding: 1px 8px;
+    border: 1px solid rgba(34,197,94,.26);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--wood) 12%, white);
+    color: var(--pink-accent);
+    font-size: 11px;
+    font-weight: 900;
+  }
+
+  .playlist-card__divider {
+    height: 1px;
+    margin: 12px 0;
+    background: rgba(109,38,79,.12);
+  }
+
+  .playlist-card__queue-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--pink-sub);
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .playlist-card__queue {
+    display: grid;
+    gap: 9px;
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .playlist-card__track {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr);
+    gap: 8px;
+    align-items: start;
+    color: var(--pink-text);
+  }
+
+  .playlist-card__index {
+    padding-top: 1px;
+    color: var(--pink-sub);
+    font-size: 12px;
+    font-weight: 900;
+    text-align: center;
+  }
+
+  .playlist-card__track b {
+    display: block;
+    overflow: hidden;
+    color: var(--pink-text);
+    font-size: 12px;
+    line-height: 1.32;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .playlist-card__track span {
+    display: block;
+    margin-top: 2px;
+    overflow: hidden;
+    color: var(--pink-sub);
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .album {
+    display: grid;
+    width: 54px;
+    height: 54px;
+    place-items: center;
+    border-radius: 16px;
+    background: linear-gradient(145deg, #a7f3d0, #f9a8d4);
+    color: var(--pink-text);
+    font-weight: 900;
+  }
+
+  .music-card small,
+  .healing-invite small {
+    display: block;
+    color: var(--pink-soft);
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  .music-card b,
+  .healing-invite b {
+    display: block;
+    margin-top: 2px;
+    color: var(--pink-text);
+    font-size: 15px;
+  }
+
+  .music-card span,
+  .healing-invite span {
+    display: block;
+    margin-top: 2px;
+    color: var(--pink-sub);
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .play-btn {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--pink-accent);
+    color: white;
+  }
+
+  .healing-invite {
+    display: grid;
+    gap: 12px;
+    border-color: rgba(34,197,94,.26);
+    background: color-mix(in srgb, var(--wood) 9%, var(--pink-card));
+  }
+
+  .invite-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .secondary-pill {
+    min-height: 38px;
+    padding: 0 14px;
+    border: 1px solid var(--pink-border);
+    border-radius: var(--radius-pill);
+    background: rgba(255,255,255,.42);
+    color: var(--pink-sub);
+    font-size: 13px;
+    font-weight: 900;
+  }
+
+  .composer {
+    position: absolute;
+    right: 18px;
+    bottom: 18px;
+    left: 18px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 48px;
+    gap: 10px;
+    padding: 10px;
+    border: 1px solid var(--pink-border);
+    border-radius: 26px;
+    background: rgba(242,232,239,.86);
+    box-shadow: 0 10px 30px rgba(109,38,79,.12);
+    backdrop-filter: blur(12px);
+  }
+
+  .composer input {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: var(--pink-text);
+    outline: none;
+    padding: 0 8px;
+    font-size: 14px;
+  }
+
+  .send-btn {
+    display: grid;
+    width: 48px;
+    height: 48px;
+    place-items: center;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--pink-accent);
+    color: white;
+  }
+
+  .floating-player {
+    position: absolute;
+    right: 22px;
+    bottom: 92px;
+    display: grid;
+    width: 52px;
+    height: 52px;
+    place-items: center;
+    border: 1px solid rgba(255,255,255,.68);
+    border-radius: var(--radius-pill);
+    background: linear-gradient(145deg, #f3b3d4, #ca6aa6);
+    color: white;
+    box-shadow: 0 12px 28px rgba(198,83,147,.24);
+  }
+
+  .floating-player.is-playing svg {
+    animation: player-spin 8s linear infinite;
+  }
+
+  @keyframes player-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .player-sheet {
+    position: absolute;
+    right: 18px;
+    bottom: 154px;
+    left: 18px;
+    z-index: 12;
+    display: none;
+    gap: 14px;
+    padding: 16px;
+    border: 1px solid var(--pink-border);
+    border-radius: 26px;
+    background: rgba(242,232,239,.92);
+    box-shadow: 0 18px 46px rgba(109,38,79,.18);
+    backdrop-filter: blur(16px);
+  }
+
+  .player-sheet.is-open {
+    display: grid;
+  }
+
+  .player-sheet__top {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr) 40px;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .player-sheet__cover {
+    display: grid;
+    width: 64px;
+    height: 64px;
+    place-items: center;
+    border-radius: 18px;
+    background: linear-gradient(145deg, #a7f3d0, #f9a8d4);
+    color: var(--pink-text);
+    font-size: 22px;
+    font-weight: 900;
+  }
+
+  .player-sheet__top small {
+    display: block;
+    color: var(--pink-soft);
+    font-size: 11px;
+    font-weight: 900;
+  }
+
+  .player-sheet__top strong {
+    display: block;
+    margin-top: 3px;
+    color: var(--pink-text);
+    font-size: 17px;
+  }
+
+  .player-sheet__top span {
+    display: block;
+    margin-top: 3px;
+    color: var(--pink-sub);
+    font-size: 12px;
+  }
+
+  .player-close {
+    display: grid;
+    width: 40px;
+    height: 40px;
+    place-items: center;
+    border: 1px solid var(--pink-border);
+    border-radius: var(--radius-pill);
+    background: rgba(255,255,255,.42);
+    color: var(--pink-sub);
+    font-weight: 900;
+  }
+
+  .player-progress {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) 34px;
+    gap: 8px;
+    align-items: center;
+    color: var(--pink-sub);
+    font-size: 11px;
+  }
+
+  .player-controls {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .player-controls button {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    border: 1px solid var(--pink-border);
+    border-radius: var(--radius-pill);
+    background: rgba(255,255,255,.46);
+    color: var(--pink-sub);
+  }
+
+  .player-controls button.is-main {
+    width: 48px;
+    height: 48px;
+    border: 0;
+    background: var(--pink-accent);
+    color: white;
+  }
+
+  .garden-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .weekday {
+    color: var(--pink-soft);
+    font-size: 12px;
+    text-align: center;
+  }
+
+  .day {
+    display: grid;
+    min-height: 44px;
+    padding: 7px;
+    border: 1px solid rgba(255,255,255,.55);
+    border-radius: 14px;
+    background: var(--pink-card-2);
+    color: var(--pink-text);
+    box-shadow: 4px 4px 10px rgba(179,142,164,.24), -4px -4px 10px rgba(255,255,255,.58);
+  }
+
+  .day small { font-size: 10px; color: var(--pink-soft); }
+  .day b { align-self: end; font-size: 13px; }
+  .day.is-empty { opacity: .32; }
+  .day.is-selected { outline: 2px solid var(--pink-accent); }
+  .tone-wood { background: color-mix(in srgb, var(--wood) 22%, var(--pink-card)); }
+  .tone-fire { background: color-mix(in srgb, var(--fire) 20%, var(--pink-card)); }
+  .tone-earth { background: color-mix(in srgb, var(--earth) 24%, var(--pink-card)); }
+  .tone-water { background: color-mix(in srgb, var(--water) 21%, var(--pink-card)); }
+
+  .summary-card,
+  .editor-card,
+  .settings-card {
+    margin-top: 18px;
+    padding: 18px;
+    border: 1px solid var(--pink-border);
+    border-radius: 24px;
+    background: var(--pink-card);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .summary-row {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr) 42px;
+    gap: 10px;
+    align-items: center;
+    margin-top: 12px;
+    color: var(--pink-sub);
+    font-size: 13px;
+  }
+
+  .bar {
+    height: 8px;
+    overflow: hidden;
+    border-radius: var(--radius-pill);
+    background: rgba(109,38,79,.1);
+  }
+
+  .bar span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--pink-accent);
+  }
+
+  .editor-card { display: none; }
+  .editor-card.is-open { display: block; }
+
+  .emotion-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .emotion-options button {
+    min-height: 36px;
+    padding: 0 12px;
+    border: 1px solid var(--pink-border);
+    border-radius: var(--radius-pill);
+    background: rgba(255,255,255,.46);
+    color: var(--pink-sub);
+    font-weight: 800;
+  }
+
+  .emotion-options button.is-active {
+    border-color: var(--pink-accent);
+    background: color-mix(in srgb, var(--pink-accent) 14%, white);
+    color: var(--pink-accent);
+  }
+
+  .garden-page {
+    background: #fff3fa;
+  }
+
+  .garden-page .scroll-area {
+    padding-bottom: 84px;
+  }
+
+  .garden-hero {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+  }
+
+  .garden-brand {
+    display: block;
+    color: #c21870;
+    font-size: 13px;
+    font-weight: 900;
+  }
+
+  .garden-hero h1 {
+    margin: 2px 0 0;
+    color: #8b0f4f;
+    font-size: 30px;
+    line-height: 1.05;
+  }
+
+  .chat-pill {
+    min-height: 42px;
+    padding: 0 18px;
+    border: 1px solid #f7b9da;
+    border-radius: var(--radius-pill);
+    background: rgba(255,255,255,.62);
+    color: #c21870;
+    font-weight: 900;
+    box-shadow: 0 8px 22px rgba(198,83,147,.12);
+  }
+
+  .garden-month-pill {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr) 38px;
+    gap: 8px;
+    align-items: center;
+    margin: 0 auto 16px;
+    padding: 6px;
+    border: 1px solid #f7b9da;
+    border-radius: 22px;
+    background: rgba(255,255,255,.62);
+    box-shadow: 0 8px 22px rgba(198,83,147,.1);
+  }
+
+  .garden-month-pill strong {
+    display: block;
+    color: #8b0f4f;
+    font-size: 16px;
+    text-align: center;
+  }
+
+  .garden-month-pill span {
+    display: block;
+    margin-top: 1px;
+    color: #c21870;
+    font-size: 11px;
+    font-weight: 900;
+    text-align: center;
+  }
+
+  .month-arrow {
+    display: grid;
+    width: 38px;
+    height: 38px;
+    place-items: center;
+    border: 1px solid #f7c9e2;
+    border-radius: 50%;
+    background: #fff5fb;
+    color: #d04493;
+    font-size: 22px;
+    font-weight: 900;
+  }
+
+  .garden-card-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .garden-weekday {
+    color: #c21870;
+    font-size: 12px;
+    font-weight: 900;
+    text-align: center;
+  }
+
+  .garden-cell {
+    display: grid;
+    min-height: 52px;
+    padding: 5px 3px;
+    border: 1px solid #f8c4e0;
+    border-radius: 12px;
+    background: rgba(255,255,255,.52);
+    color: #c21870;
+    box-shadow: 0 3px 10px rgba(198,83,147,.09);
+  }
+
+  .garden-cell.is-muted {
+    background: rgba(255,255,255,.45);
+  }
+
+  .garden-cell.is-selected {
+    border-color: #ec4899;
+    box-shadow: 0 0 0 1px #ec4899, 0 6px 18px rgba(236,72,153,.14);
+  }
+
+  .garden-cell__date {
+    color: #c21870;
+    font-size: 10px;
+    font-weight: 900;
+  }
+
+  .garden-cell__mark {
+    display: grid;
+    place-items: center;
+    min-height: 17px;
+    margin-top: 1px;
+    color: #d04493;
+    font-size: 13px;
+  }
+
+  .garden-cell__label {
+    align-self: end;
+    color: #c21870;
+    font-size: 10px;
+    font-weight: 900;
+    text-align: center;
+  }
+
+  .garden-modal {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    display: none;
+    padding: 44px 14px 14px;
+    background: rgba(198,83,147,.18);
+    backdrop-filter: blur(4px);
+  }
+
+  .garden-modal.is-open {
+    display: block;
+  }
+
+  .garden-modal__panel {
+    display: grid;
+    max-height: 100%;
+    overflow: hidden;
+    gap: 10px;
+    padding: 16px;
+    border: 1px solid #f7b9da;
+    border-radius: 24px;
+    background: #fff7fc;
+    box-shadow: 0 18px 46px rgba(198,83,147,.24);
+  }
+
+  .garden-modal__header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .garden-modal__header small {
+    display: block;
+    color: #c21870;
+    font-size: 14px;
+    font-weight: 900;
+  }
+
+  .garden-modal__header h2 {
+    margin: 4px 0 0;
+    color: #8b0f4f;
+    font-size: 18px;
+    line-height: 1.25;
+  }
+
+  .garden-modal__close {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    border: 1px solid #f7b9da;
+    border-radius: 50%;
+    background: #fff2fa;
+    color: #c21870;
+    font-size: 25px;
+    font-weight: 900;
+  }
+
+  .current-chip {
+    justify-self: start;
+    min-height: 30px;
+    padding: 0 12px;
+    border: 1px solid #f7b9da;
+    border-radius: var(--radius-pill);
+    background: #fff7fc;
+    color: #c21870;
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .emotion-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .emotion-card {
+    position: relative;
+    min-height: 58px;
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    column-gap: 8px;
+    align-items: center;
+    padding: 8px 9px;
+    border: 1px solid #f7b9da;
+    border-radius: 18px;
+    background: rgba(255,255,255,.64);
+    color: #8b0f4f;
+    text-align: left;
+    font-weight: 900;
+  }
+
+  .emotion-card.is-active {
+    border-color: #86efac;
+    background: #d7f8df;
+    box-shadow: inset 0 0 0 2px rgba(34,197,94,.22);
+  }
+
+  .emotion-card.is-active::after {
+    content: "✓";
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: grid;
+    width: 20px;
+    height: 20px;
+    place-items: center;
+    border-radius: 50%;
+    background: #45c565;
+    color: white;
+    font-size: 13px;
+  }
+
+  .emotion-card span {
+    display: block;
+    grid-row: 1 / span 2;
+    font-size: 20px;
+  }
+
+  .emotion-card b {
+    display: block;
+    font-size: 14px;
+  }
+
+  .emotion-card small {
+    display: block;
+    margin-top: 1px;
+    color: #c21870;
+    font-size: 10px;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .note-field {
+    display: grid;
+    gap: 6px;
+    color: #c21870;
+    font-size: 13px;
+    font-weight: 900;
+  }
+
+  .note-field textarea {
+    min-height: 54px;
+    resize: vertical;
+    border: 1px solid #f7b9da;
+    border-radius: 18px;
+    background: white;
+    color: #8b0f4f;
+    padding: 10px 12px;
+    outline: none;
+  }
+
+  .save-correction {
+    justify-self: end;
+    min-height: 38px;
+    padding: 0 18px;
+    border: 1px solid #f7b9da;
+    border-radius: var(--radius-pill);
+    background: white;
+    color: #c21870;
+    font-weight: 900;
+    box-shadow: 0 8px 20px rgba(198,83,147,.12);
+  }
+
+  .garden-report-grid {
+    display: grid;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .garden-report-card {
+    padding: 14px;
+    border: 1px solid var(--pink-border);
+    border-radius: 18px;
+    background: rgba(255,255,255,.64);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .garden-report-card__head {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .garden-report-avatar {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    border: 1px solid #f7b9da;
+    border-radius: 50%;
+    background: #ffe3f2;
+    color: #8b0f4f;
+    font-size: 22px;
+    font-family: Georgia, serif;
+    font-weight: 900;
+  }
+
+  .garden-report-card h2 {
+    margin: 0;
+    color: #8b0f4f;
+    font-size: 17px;
+    line-height: 1.25;
+  }
+
+  .garden-report-card small {
+    display: block;
+    color: #c21870;
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .garden-badge {
+    display: inline-flex;
+    min-height: 30px;
+    align-items: center;
+    margin-bottom: 8px;
+    padding: 0 11px;
+    border: 1px solid #f7b9da;
+    border-radius: var(--radius-pill);
+    background: #ffe8f4;
+    color: #c21870;
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .garden-stat-row {
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr) 28px;
+    gap: 8px;
+    align-items: center;
+    margin-top: 6px;
+    color: #c21870;
+    font-size: 11px;
+    font-weight: 900;
+  }
+
+  .garden-report-copy {
+    margin: 0;
+    color: #c21870;
+    font-size: 12px;
+    line-height: 1.65;
+  }
+
+  .setting-group {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .section-label {
+    margin: 0 0 10px;
+    color: var(--pink-soft);
+    font-size: 13px;
+    font-weight: 900;
+  }
+
+  .field {
+    display: grid;
+    gap: 8px;
+    padding: 14px;
+    border: 1px solid var(--pink-border);
+    border-radius: 18px;
+    background: rgba(255,255,255,.36);
+  }
+
+  .field label,
+  .choice-row b {
+    color: var(--pink-text);
+    font-size: 14px;
+    font-weight: 900;
+  }
+
+  .field input {
+    min-height: 34px;
+    border: 0;
+    border-top: 1px solid rgba(109,38,79,.12);
+    background: transparent;
+    color: var(--pink-sub);
+    outline: 0;
+    padding-top: 8px;
+  }
+
+  .field textarea,
+  .field select {
+    width: 100%;
+    border: 0;
+    border-top: 1px solid rgba(109,38,79,.12);
+    background: transparent;
+    color: var(--pink-sub);
+    outline: 0;
+    padding-top: 8px;
+  }
+
+  .field textarea {
+    min-height: 92px;
+    resize: vertical;
+  }
+
+  .settings-panel {
+    margin-bottom: 16px;
+    padding: 18px;
+    border: 1px solid var(--pink-border);
+    border-radius: 24px;
+    background: rgba(255,255,255,.42);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .settings-panel__intro {
+    margin: 0 0 14px;
+    color: var(--pink-sub);
+    font-size: 13px;
+    line-height: 1.65;
+  }
+
+  .settings-status {
+    margin-bottom: 12px;
+    padding: 11px 13px;
+    border: 1px solid rgba(20,184,166,.26);
+    border-radius: 14px;
+    background: rgba(20,184,166,.1);
+    color: #14a695;
+    font-weight: 900;
+  }
+
+  .settings-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .settings-actions button,
+  .danger-pill {
+    min-height: 38px;
+    padding: 0 14px;
+    border: 1px solid var(--pink-border);
+    border-radius: var(--radius-pill);
+    background: rgba(255,255,255,.44);
+    color: var(--pink-sub);
+    font-weight: 900;
+  }
+
+  .danger-pill {
+    border-color: rgba(190,18,60,.25);
+    background: rgba(190,18,60,.1);
+    color: #be123c;
+  }
+
+  .choice-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    align-items: stretch;
+    padding: 14px;
+    border: 1px solid var(--pink-border);
+    border-radius: 18px;
+    background: rgba(255,255,255,.36);
+  }
+
+  .choice-pills {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .choice-pills button {
+    min-height: 38px;
+    padding: 0 10px;
+    border: 1px solid rgba(109,38,79,.16);
+    border-radius: 14px;
+    background: rgba(255,255,255,.34);
+    color: var(--pink-sub);
+    font-size: 12px;
+    font-weight: 900;
+    white-space: normal;
+  }
+
+  .choice-pills button.is-active {
+    border-color: var(--pink-accent);
+    background: color-mix(in srgb, var(--pink-accent) 13%, white);
+    color: var(--pink-accent);
+  }
+
+  .switch {
+    position: relative;
+    width: 50px;
+    height: 30px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--pink-accent);
+  }
+
+  .switch::after {
+    content: "";
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: white;
+  }
+
+  .body-wrap {
+    position: relative;
+    display: grid;
+    min-height: 500px;
+    place-items: center;
+    margin-top: 6px;
+    isolation: isolate;
+  }
+
+  .body-wrap::before {
+    content: "";
+    position: absolute;
+    inset: 7% 8% 5%;
+    z-index: 0;
+    border-radius: 46%;
+    background:
+      radial-gradient(circle at 50% 40%, rgba(134,239,172,.34), transparent 36%),
+      radial-gradient(circle at 50% 48%, rgba(167,139,250,.28), transparent 52%);
+    filter: blur(6px);
+    opacity: .86;
+  }
+
+  .healing-stage {
+    position: relative;
+    z-index: 1;
+    width: min(82vw, 330px);
+    aspect-ratio: 1 / 1.32;
+  }
+
+  .healing-body,
+  .healing-organ {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    user-select: none;
+    pointer-events: none;
+  }
+
+  .healing-body {
+    z-index: 1;
+    opacity: .7;
+    filter: drop-shadow(0 0 28px rgba(196,181,253,.34));
+    transform: scale(1.22);
+  }
+
+  .healing-organ {
+    z-index: 2;
+    opacity: .86;
+    filter:
+      saturate(1.06)
+      drop-shadow(0 0 14px rgba(34,197,94,.72))
+      drop-shadow(0 0 34px rgba(134,239,172,.5));
+    transform: scale(1.22);
+    animation: organ-breathe 4s ease-in-out infinite;
+  }
+
+  .organ-label-card {
+    position: absolute;
+    left: 4px;
+    top: 206px;
+    z-index: 3;
+    max-width: 164px;
+    padding: 12px 14px;
+    border: 1px solid rgba(34,197,94,.5);
+    border-radius: 14px;
+    background: rgba(30,27,75,.78);
+    color: var(--purple-text);
+    box-shadow: 0 0 26px rgba(34,197,94,.18);
+    backdrop-filter: blur(14px);
+  }
+
+  .organ-label-card::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    width: 58px;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(34,197,94,.82), rgba(34,197,94,.16));
+    box-shadow: 0 0 10px rgba(34,197,94,.3);
+    transform: translateY(-50%);
+  }
+
+  .organ-label-card::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: calc(100% + 54px);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--wood);
+    box-shadow: 0 0 14px rgba(34,197,94,.7);
+    transform: translateY(-50%);
+  }
+
+  .organ-label-card strong {
+    display: block;
+    font-size: 16px;
+    line-height: 1.2;
+  }
+
+  .organ-label-card span {
+    display: block;
+    margin-top: 4px;
+    color: var(--purple-sub);
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .organ-tags {
+    position: absolute;
+    right: -4px;
+    top: 196px;
+    z-index: 3;
+    display: grid;
+    gap: 9px;
+  }
+
+  .organ-tag {
+    min-width: 74px;
+    padding: 8px 11px;
+    border: 1px solid var(--purple-border);
+    border-radius: var(--radius-pill);
+    background: rgba(255,255,255,.09);
+    color: var(--purple-text);
+    font-size: 12px;
+    font-weight: 900;
+    backdrop-filter: blur(10px);
+  }
+
+  .healing-now {
+    margin-top: auto;
+    padding: 18px 20px;
+    border: 1px solid var(--purple-border);
+    border-radius: 22px;
+    background: rgba(255,255,255,.06);
+    box-shadow: 0 14px 44px rgba(18,12,52,.24);
+    backdrop-filter: blur(14px);
+  }
+
+  .healing-now small {
+    color: var(--purple-sub);
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .healing-now h2 {
+    margin: 6px 0 4px;
+    font-size: 22px;
+  }
+
+  .healing-progress {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) 34px;
+    gap: 10px;
+    align-items: center;
+    margin-top: 16px;
+    color: var(--purple-sub);
+    font-size: 12px;
+  }
+
+  .healing-progress .bar { background: rgba(255,255,255,.14); }
+  .healing-progress .bar span { width: 38%; background: linear-gradient(90deg, var(--wood), var(--purple-accent)); }
+
+  @keyframes organ-breathe {
+    0%, 100% { opacity: .78; transform: scale(1.2); }
+    50% { opacity: .95; transform: scale(1.25); }
+  }
+
+  .side-panel {
+    display: grid;
+    gap: 18px;
+  }
+
+  .brief,
+  .nav-card,
+  .flow-card {
+    padding: 20px;
+    border: 1px solid rgba(198,83,147,.12);
+    border-radius: 24px;
+    background: rgba(255,255,255,.68);
+    box-shadow: var(--shadow-float);
+    backdrop-filter: blur(14px);
+  }
+
+  .brief h2,
+  .nav-card h2,
+  .flow-card h2 {
+    margin: 0 0 8px;
+    color: var(--pink-text);
+    font-size: 20px;
+  }
+
+  .brief p,
+  .flow-card p {
+    margin: 0;
+    color: var(--pink-sub);
+    line-height: 1.7;
+  }
+
+  .brief-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .brief-chip {
+    padding: 12px;
+    border-radius: 16px;
+    background: rgba(244,234,241,.82);
+  }
+
+  .brief-chip b {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--pink-text);
+    font-size: 13px;
+  }
+
+  .brief-chip span {
+    color: var(--pink-sub);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .nav-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .nav-list button {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    min-height: 46px;
+    border: 1px solid rgba(198,83,147,.12);
+    border-radius: 16px;
+    background: rgba(244,234,241,.68);
+    color: var(--pink-sub);
+    padding: 0 14px;
+    font-weight: 900;
+  }
+
+  .nav-list button.is-active {
+    border-color: var(--pink-accent);
+    color: var(--pink-accent);
+    background: color-mix(in srgb, var(--pink-accent) 10%, white);
+  }
+
+  .flow-list {
+    display: grid;
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .flow-item {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+  }
+
+  .flow-num {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border-radius: var(--radius-pill);
+    background: var(--pink-card);
+    color: var(--pink-accent);
+    font-weight: 900;
+  }
+
+  .flow-item b {
+    display: block;
+    color: var(--pink-text);
+    font-size: 14px;
+  }
+
+  .flow-item span {
+    color: var(--pink-sub);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .feature-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .feature-item {
+    padding: 12px;
+    border-radius: 16px;
+    background: rgba(244,234,241,.82);
+  }
+
+  .feature-item b {
+    display: block;
+    color: var(--pink-text);
+    font-size: 14px;
+  }
+
+  .feature-item span {
+    display: block;
+    margin-top: 4px;
+    color: var(--pink-sub);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .interaction-action {
+    display: inline;
+    padding: 0 5px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--pink-accent) 12%, white);
+    color: var(--pink-accent);
+    font-weight: 900;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    z-index: 100;
+    padding: 10px 16px;
+    border-radius: var(--radius-pill);
+    background: rgba(48,20,40,.88);
+    color: white;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, 10px);
+    transition: opacity .2s ease, transform .2s ease;
+  }
+
+  .toast.is-show {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+
+  @keyframes breathe {
+    0%, 100% { transform: scale(1); opacity: .72; }
+    50% { transform: scale(1.08); opacity: 1; }
+  }
+
+  @media (max-width: 860px) {
+    .workspace {
+      grid-template-columns: 1fr;
+      width: min(430px, calc(100vw - 28px));
+      padding: 18px 0;
+    }
+
+    .phone-shell {
+      position: relative;
+      top: 0;
+      margin: 0 auto;
+      height: 820px;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="workspace">
+  <main class="phone-shell" aria-label="SoulEcho 移动端原型">
+    <section class="screen is-active" id="screen-chat">
+      <div class="app-surface">
+        <header class="app-header">
+          <div class="title-block">
+            <small>SoulEcho</small>
+            <h1>MOMO聊天室</h1>
+          </div>
+          <div class="header-actions">
+            <button class="round-btn is-healing" type="button" aria-label="打开疗愈空间" onclick="goTo('healing')">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20v-7"/><path d="M12 13c-3.2 0-5.4-2-6.2-5.8 3.9.1 6.2 2.1 6.2 5.8Z"/><path d="M12 13c3.2 0 5.4-2 6.2-5.8-3.9.1-6.2 2.1-6.2 5.8Z"/><path d="M8 20h8"/><path d="M12 8.5c-1.7-1.5-1.7-4 0-6 1.7 2 1.7 4.5 0 6Z"/></svg>
+            </button>
+            <button class="round-btn" type="button" aria-label="打开情绪花园" onclick="goTo('garden')">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20v-7"/><path d="M12 13c-3.2 0-5.4-2-6.2-5.8 3.9.1 6.2 2.1 6.2 5.8Z"/><path d="M12 13c3.2 0 5.4-2 6.2-5.8-3.9.1-6.2 2.1-6.2 5.8Z"/><path d="M8 20h8"/></svg>
+            </button>
+            <button class="round-btn" type="button" aria-label="打开设置" onclick="goTo('settings')">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.04.04a2.15 2.15 0 0 1-3.04 3.04l-.04-.04a1.8 1.8 0 0 0-1.98-.36 1.8 1.8 0 0 0-1.1 1.66v.08a2.15 2.15 0 0 1-4.3 0v-.08a1.8 1.8 0 0 0-1.1-1.66 1.8 1.8 0 0 0-1.98.36l-.04.04a2.15 2.15 0 0 1-3.04-3.04l.04-.04A1.8 1.8 0 0 0 4.6 15a1.8 1.8 0 0 0-1.66-1.1h-.09a2.15 2.15 0 0 1 0-4.3h.08A1.8 1.8 0 0 0 4.6 8a1.8 1.8 0 0 0-.36-1.98l-.04-.04a2.15 2.15 0 0 1 3.04-3.04l.04.04A1.8 1.8 0 0 0 9.26 3.34a1.8 1.8 0 0 0 1.1-1.66V1.6a2.15 2.15 0 0 1 4.3 0v.08a1.8 1.8 0 0 0 1.1 1.66 1.8 1.8 0 0 0 1.98-.36l.04-.04a2.15 2.15 0 0 1 3.04 3.04l-.04.04A1.8 1.8 0 0 0 19.4 8c.27.66.91 1.09 1.66 1.1h.09a2.15 2.15 0 0 1 0 4.3h-.09A1.8 1.8 0 0 0 19.4 15Z"/></svg>
+            </button>
+          </div>
+        </header>
+
+        <div class="scroll-area">
+          <aside class="api-guide">
+            <div>
+              <strong>还没有配置 OpenAI API Key</strong>
+              <span>momo 先用兜底话术陪你，填好 Key 后下一句生效。</span>
+            </div>
+            <button class="primary-pill" type="button" onclick="goTo('settings')">去设置</button>
+          </aside>
+
+          <div class="message-list">
+            <div class="message-row">
+              <div class="avatar"><img src="../public/avatars/momo-default.png" alt="momo 头像" /></div>
+              <article class="bubble">
+                <div class="bubble-meta"><span>momo</span><time>23:18</time></div>
+                <p>晚上好，宝贝。今天想先听点什么？我可以按现在的时间和你的口味找一组歌。</p>
+              </article>
+            </div>
+
+            <div class="message-row is-user">
+              <div class="avatar"><img src="../public/avatars/user-default.png" alt="用户头像" /></div>
+              <article class="bubble">
+                <div class="bubble-meta"><span>你</span><time>23:18</time></div>
+                <p>给我来点适合现在听的歌。</p>
+              </article>
+            </div>
+
+            <div class="message-row">
+              <div class="avatar"><img src="../public/avatars/momo-default.png" alt="momo 头像" /></div>
+              <article class="bubble">
+                <div class="bubble-meta"><span>momo</span><time>23:18</time></div>
+                <p>好，给你抓一组轻一点的日常歌单，适合放在旁边慢慢听。</p>
+              </article>
+            </div>
+
+            <div class="message-row is-wide">
+              <div class="avatar"><img src="../public/avatars/momo-default.png" alt="momo 头像" /></div>
+              <article class="playlist-card">
+                <div class="playlist-card__top">
+                  <div class="playlist-card__cover">ZEN</div>
+                  <div>
+                    <p class="playlist-card__title">momo 推荐歌单</p>
+                    <div class="playlist-card__tags" aria-label="歌单标签">
+                      <span class="playlist-card__tag">Radio</span>
+                      <span class="playlist-card__tag">Chill</span>
+                      <span class="playlist-card__tag">Healing</span>
+                    </div>
+                  </div>
+                  <button class="play-btn" type="button" aria-label="播放日常推荐歌单" onclick="openPlayer('Zen Music · Daily Flow', 'momo 推荐歌单 · 5 tracks')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+                  </button>
+                </div>
+                <div class="playlist-card__divider"></div>
+                <div class="playlist-card__queue-head">
+                  <span>5 首日常歌单</span>
+                  <button type="button" style="border:0;background:transparent;color:var(--pink-accent);font-weight:900;padding:0;" onclick="showToast('收起歌单列表')">收起</button>
+                </div>
+                <ol class="playlist-card__queue">
+                  <li class="playlist-card__track">
+                    <span class="playlist-card__index">1</span>
+                    <div><b>Zen Music - Pure, calm, peaceful music</b><span>CS草社</span></div>
+                  </li>
+                  <li class="playlist-card__track">
+                    <span class="playlist-card__index">2</span>
+                    <div><b>Guqin by a Mountain Stream</b><span>The Zen Orient</span></div>
+                  </li>
+                  <li class="playlist-card__track">
+                    <span class="playlist-card__index">3</span>
+                    <div><b>99% Fall Asleep in Minutes</b><span>Healing Quiet Music</span></div>
+                  </li>
+                  <li class="playlist-card__track">
+                    <span class="playlist-card__index">4</span>
+                    <div><b>Traditional Guqin and Erhu</b><span>Peaceful Brain</span></div>
+                  </li>
+                  <li class="playlist-card__track">
+                    <span class="playlist-card__index">5</span>
+                    <div><b>Serenity by the Water</b><span>Vuca Zen Music</span></div>
+                  </li>
+                </ol>
+              </article>
+            </div>
+
+            <div class="message-row is-user">
+              <div class="avatar"><img src="../public/avatars/user-default.png" alt="用户头像" /></div>
+              <article class="bubble">
+                <div class="bubble-meta"><span>你</span><time>23:19</time></div>
+                <p>最近压力特别大，总是睡不好。</p>
+              </article>
+            </div>
+
+            <div class="message-row">
+              <div class="avatar"><img src="../public/avatars/momo-default.png" alt="momo 头像" /></div>
+              <article class="bubble">
+                <div class="bubble-meta"><span>momo</span><time>23:19</time></div>
+                <p>像是心火一直没落下来，也有一点水气不足。今晚先别逼自己变好，我们先把身体放慢一点。</p>
+              </article>
+            </div>
+
+            <div class="message-row">
+              <div class="avatar"><img src="../public/avatars/momo-default.png" alt="momo 头像" /></div>
+              <article class="healing-invite">
+                <div>
+                  <small>疗愈邀请</small>
+                  <b>要进入疗愈空间吗？</b>
+                  <span>我会在疗愈空间里自动准备对应的音乐和五行器官可视化，陪你把紧绷的地方慢慢松开。</span>
+                </div>
+                <div class="invite-actions">
+                  <button class="primary-pill" type="button" onclick="startHealingMusic()">开始疗愈</button>
+                  <button class="secondary-pill" type="button" onclick="continueChatAfterInvite()">先聊聊</button>
+                </div>
+              </article>
+            </div>
+
+            <div class="message-row" id="after-invite-reply" style="display:none;">
+              <div class="avatar"><img src="../public/avatars/momo-default.png" alt="momo 头像" /></div>
+              <article class="bubble">
+                <div class="bubble-meta"><span>momo</span><time>23:20</time></div>
+                <p>好，那我们先不进入疗愈。你可以继续说说，最近最压着你的那件事是什么？</p>
+              </article>
+            </div>
+          </div>
+        </div>
+
+        <section class="player-sheet" id="player-sheet" aria-label="展开播放器">
+          <div class="player-sheet__top">
+            <div class="player-sheet__cover">♪</div>
+            <div>
+              <small>正在播放</small>
+              <strong id="player-title">水境 · 静夜</strong>
+              <span id="player-subtitle">羽音系列 · 补肾水 · 降心火</span>
+            </div>
+            <button class="player-close" type="button" aria-label="关闭播放器" onclick="togglePlayer(false)">×</button>
+          </div>
+          <div class="player-progress">
+            <span>1:24</span>
+            <div class="bar"><span style="width:36%;background:var(--pink-accent);"></span></div>
+            <span>4:08</span>
+          </div>
+          <div class="player-controls" aria-label="播放器控制">
+            <button type="button" aria-label="上一首" onclick="showToast('上一首')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+            </button>
+            <button class="is-main" type="button" aria-label="播放或暂停" onclick="showToast('播放 / 暂停')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <button type="button" aria-label="下一首" onclick="showToast('下一首')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 18l8.5-6L6 6v12zm10-12h2v12h-2z"/></svg>
+            </button>
+          </div>
+        </section>
+
+        <button class="floating-player" id="floating-player" type="button" aria-label="打开播放器" onclick="togglePlayer()">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        </button>
+
+        <form class="composer" onsubmit="event.preventDefault(); showToast('原型演示：发送后触发情绪识别与推荐');">
+          <input aria-label="聊天输入" placeholder="和 momo 说说..." />
+          <button class="send-btn" type="submit" aria-label="发送">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-garden">
+      <div class="app-surface garden-page">
+        <div class="scroll-area">
+          <header class="garden-hero">
+            <div>
+              <span class="garden-brand">SoulEcho</span>
+              <h1>情绪花园</h1>
+            </div>
+            <button class="chat-pill" type="button" onclick="goTo('chat')">‹ 聊天</button>
+          </header>
+
+          <section class="garden-month-pill" aria-label="月份切换">
+            <button class="month-arrow" type="button" aria-label="上个月" onclick="showToast('切换到上个月')">‹</button>
+            <div>
+              <strong>2026 年 5 月</strong>
+              <span>整理花园中...</span>
+            </div>
+            <button class="month-arrow" type="button" aria-label="下个月" onclick="showToast('切换到下个月')">›</button>
+          </section>
+
+          <div class="garden-card-grid" aria-label="五月情绪日历">
+            <div class="garden-weekday">一</div><div class="garden-weekday">二</div><div class="garden-weekday">三</div><div class="garden-weekday">四</div><div class="garden-weekday">五</div><div class="garden-weekday">六</div><div class="garden-weekday">日</div>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-01', '平和')"><span class="garden-cell__date">1</span><span class="garden-cell__mark">🍃</span><span class="garden-cell__label">平和</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-02', '愉悦')"><span class="garden-cell__date">2</span><span class="garden-cell__mark">☀️</span><span class="garden-cell__label">愉悦</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-03', '想太多')"><span class="garden-cell__date">3</span><span class="garden-cell__mark">🌼</span><span class="garden-cell__label">想太多</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-04', '低落')"><span class="garden-cell__date">4</span><span class="garden-cell__mark">🍂</span><span class="garden-cell__label">低落</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-05', '平和')"><span class="garden-cell__date">5</span><span class="garden-cell__mark">🍃</span><span class="garden-cell__label">平和</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-06', '不安')"><span class="garden-cell__date">6</span><span class="garden-cell__mark">💧</span><span class="garden-cell__label">不安</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-07', '烦躁')"><span class="garden-cell__date">7</span><span class="garden-cell__mark">🌱</span><span class="garden-cell__label">烦躁</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-08', '心慌')"><span class="garden-cell__date">8</span><span class="garden-cell__mark">🌺</span><span class="garden-cell__label">心慌</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-09', '平和')"><span class="garden-cell__date">9</span><span class="garden-cell__mark">🍃</span><span class="garden-cell__label">平和</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-10', '愉悦')"><span class="garden-cell__date">10</span><span class="garden-cell__mark">☀️</span><span class="garden-cell__label">愉悦</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-11', '想太多')"><span class="garden-cell__date">11</span><span class="garden-cell__mark">🌼</span><span class="garden-cell__label">想太多</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-12', '平和')"><span class="garden-cell__date">12</span><span class="garden-cell__mark">🍃</span><span class="garden-cell__label">平和</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-13', '不安')"><span class="garden-cell__date">13</span><span class="garden-cell__mark">💧</span><span class="garden-cell__label">不安</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-14', '低落')"><span class="garden-cell__date">14</span><span class="garden-cell__mark">🍂</span><span class="garden-cell__label">低落</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-15', '平和')"><span class="garden-cell__date">15</span><span class="garden-cell__mark">🍃</span><span class="garden-cell__label">平和</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-16', '平和')"><span class="garden-cell__date">16</span><span class="garden-cell__mark">🍃</span><span class="garden-cell__label">平和</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-17', '不安')"><span class="garden-cell__date">17</span><span class="garden-cell__mark">💧</span><span class="garden-cell__label">不安</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-18', '平和')"><span class="garden-cell__date">18</span><span class="garden-cell__mark">🍃</span><span class="garden-cell__label">平和</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-19', '愉悦')"><span class="garden-cell__date">19</span><span class="garden-cell__mark">☀️</span><span class="garden-cell__label">愉悦</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-20', '心慌')"><span class="garden-cell__date">20</span><span class="garden-cell__mark">🌺</span><span class="garden-cell__label">心慌</span></button>
+            <button class="garden-cell is-selected" type="button" onclick="openGardenCell(this, '2026-05-21', '烦躁')"><span class="garden-cell__date">21</span><span class="garden-cell__mark">🌱</span><span class="garden-cell__label">烦躁</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-22', '想太多')"><span class="garden-cell__date">22</span><span class="garden-cell__mark">🌼</span><span class="garden-cell__label">想太多</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-23', '平和')"><span class="garden-cell__date">23</span><span class="garden-cell__mark">🍃</span><span class="garden-cell__label">平和</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-24', '不安')"><span class="garden-cell__date">24</span><span class="garden-cell__mark">💧</span><span class="garden-cell__label">不安</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-25', '低落')"><span class="garden-cell__date">25</span><span class="garden-cell__mark">🍂</span><span class="garden-cell__label">低落</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-26', '平和')"><span class="garden-cell__date">26</span><span class="garden-cell__mark">🍃</span><span class="garden-cell__label">平和</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-27', '烦躁')"><span class="garden-cell__date">27</span><span class="garden-cell__mark">🌱</span><span class="garden-cell__label">烦躁</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-28', '愉悦')"><span class="garden-cell__date">28</span><span class="garden-cell__mark">☀️</span><span class="garden-cell__label">愉悦</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-29', '心慌')"><span class="garden-cell__date">29</span><span class="garden-cell__mark">🌺</span><span class="garden-cell__label">心慌</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-30', '平和')"><span class="garden-cell__date">30</span><span class="garden-cell__mark">🍃</span><span class="garden-cell__label">平和</span></button>
+            <button class="garden-cell" type="button" onclick="openGardenCell(this, '2026-05-31', '不安')"><span class="garden-cell__date">31</span><span class="garden-cell__mark">💧</span><span class="garden-cell__label">不安</span></button>
+          </div>
+
+          <div class="garden-report-grid">
+            <section class="garden-report-card">
+              <div class="garden-report-card__head">
+                <div class="garden-report-avatar">M</div>
+                <div>
+                  <small>本月花园</small>
+                  <h2>31 / 31 天有情绪记录</h2>
+                </div>
+              </div>
+              <div class="garden-badge">🍃 主导：平和</div>
+              <div class="garden-stat-row"><span>🍃 平和</span><div class="bar"><span style="width:36%;background:#5fd0b2;"></span></div><span>11 天</span></div>
+              <div class="garden-stat-row"><span>☀️ 愉悦</span><div class="bar"><span style="width:13%;background:#fbbf24;"></span></div><span>4 天</span></div>
+              <div class="garden-stat-row"><span>🌱 烦躁</span><div class="bar"><span style="width:13%;background:#22c55e;"></span></div><span>4 天</span></div>
+              <div class="garden-stat-row"><span>💧 不安</span><div class="bar"><span style="width:16%;background:#60a5fa;"></span></div><span>5 天</span></div>
+            </section>
+
+            <section class="garden-report-card">
+              <p class="garden-report-copy">在这个月的情绪花园中，你的心灵似乎经历了一些变化和探索。虽然记录的天数不多，但你的情绪大多保持平和与宁静，展现出一种内在的平衡感。</p>
+            </section>
+
+          </div>
+        </div>
+
+        <section class="garden-modal" id="garden-modal" role="dialog" aria-modal="true" aria-label="修正这一天的主导情绪">
+          <div class="garden-modal__panel">
+            <header class="garden-modal__header">
+              <div>
+                <small id="modal-date">2026-05-21</small>
+                <h2>修正这一天的主导情绪</h2>
+              </div>
+              <button class="garden-modal__close" type="button" aria-label="关闭" onclick="closeGardenModal()">×</button>
+            </header>
+            <div class="current-chip" id="modal-current">当前：烦躁</div>
+            <div class="emotion-grid">
+              <button class="emotion-card" type="button" onclick="selectEmotionCard(this, '平和')"><span>🍃</span><b>平和</b><small>稳定、没什么波动</small></button>
+              <button class="emotion-card" type="button" onclick="selectEmotionCard(this, '愉悦')"><span>☀️</span><b>愉悦</b><small>开心、轻松明亮</small></button>
+              <button class="emotion-card is-active" type="button" onclick="selectEmotionCard(this, '烦躁')"><span>🌱</span><b>烦躁</b><small>憋闷、易怒</small></button>
+              <button class="emotion-card" type="button" onclick="selectEmotionCard(this, '心慌')"><span>🌺</span><b>心慌</b><small>亢奋、睡不安稳</small></button>
+              <button class="emotion-card" type="button" onclick="selectEmotionCard(this, '想太多')"><span>🌼</span><b>想太多</b><small>反复想、脑子满</small></button>
+              <button class="emotion-card" type="button" onclick="selectEmotionCard(this, '低落')"><span>🍂</span><b>低落</b><small>失落、孤独</small></button>
+              <button class="emotion-card" type="button" onclick="selectEmotionCard(this, '不安')"><span>💧</span><b>不安</b><small>紧张、缺安全感</small></button>
+            </div>
+            <label class="note-field">
+              备注
+              <textarea placeholder="比如：今天是自己补记的。"></textarea>
+            </label>
+            <button class="save-correction" type="button" onclick="saveGardenCorrection()">保存修正</button>
+          </div>
+        </section>
+
+        <button class="floating-player" type="button" aria-label="打开播放器" onclick="togglePlayer()">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-settings">
+      <div class="app-surface">
+        <header class="app-header">
+          <button class="back-btn" type="button" onclick="goTo('chat')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+            返回
+          </button>
+          <div class="title-block"><h1>设置</h1></div>
+        </header>
+
+        <div class="scroll-area">
+          <section class="settings-panel">
+            <p class="section-label">称呼</p>
+            <p class="settings-panel__intro">你希望 momo 怎么称呼你？保存后下一句就会生效。</p>
+            <div class="field">
+              <label>你的称呼</label>
+              <input value="宝贝" readonly />
+            </div>
+          </section>
+
+          <section class="settings-panel">
+            <p class="section-label">momo 的说话方式</p>
+            <p class="settings-panel__intro">风格和长度会注入 prompt，不需要刷新页面。</p>
+            <div class="setting-group">
+              <div class="choice-row">
+                <div>
+                  <b>回复风格</b>
+                  <div style="color:var(--pink-sub);font-size:12px;margin-top:5px;line-height:1.5;">轻轻接住情绪，适合日常陪伴。</div>
+                </div>
+                <div class="choice-pills">
+                  <button class="is-active" type="button" onclick="selectChoice(this)">温柔姐姐</button>
+                  <button type="button" onclick="selectChoice(this)">元气少女</button>
+                  <button type="button" onclick="selectChoice(this)">安静医师</button>
+                  <button type="button" onclick="selectChoice(this)">自然中性</button>
+                </div>
+              </div>
+              <div class="choice-row">
+                <b>回复长度</b>
+                <div class="choice-pills">
+                  <button type="button" onclick="selectChoice(this)">短</button>
+                  <button class="is-active" type="button" onclick="selectChoice(this)">中</button>
+                  <button type="button" onclick="selectChoice(this)">长</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="settings-panel">
+            <p class="section-label">推荐行为</p>
+            <p class="settings-panel__intro">控制 momo 主动问候和音乐源偏好。</p>
+            <div class="setting-group">
+              <div class="choice-row">
+                <div>
+                  <b>主动推荐频率</b>
+                  <div style="color:var(--pink-sub);font-size:12px;margin-top:5px;line-height:1.5;">控制 momo 重新进入 app 时是否主动问候。</div>
+                </div>
+                <div class="choice-pills">
+                  <button class="is-active" type="button" onclick="selectChoice(this)">每次打开</button>
+                  <button type="button" onclick="selectChoice(this)">每天一次</button>
+                  <button type="button" onclick="selectChoice(this)">不主动</button>
+                </div>
+              </div>
+              <div class="choice-row">
+                <div>
+                  <b>默认音乐源</b>
+                  <div style="color:var(--pink-sub);font-size:12px;margin-top:5px;line-height:1.5;">日常推荐和疗愈推荐可以使用不同音乐源。</div>
+                </div>
+                <div class="choice-pills">
+                  <button class="is-active" type="button" onclick="selectChoice(this)">智能选择</button>
+                  <button type="button" onclick="selectChoice(this)">只用 YouTube</button>
+                  <button type="button" onclick="selectChoice(this)">只用网易云</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="settings-panel">
+            <p class="section-label">本地服务</p>
+            <p class="settings-panel__intro">这些信息只保存在你的浏览器 IndexedDB，不会上报。</p>
+            <div class="settings-status">OpenAI Key 已配置</div>
+            <div class="setting-group">
+              <div class="field">
+                <label>OpenAI API Key</label>
+                <input value="••••••••••••••••••••" readonly />
+              </div>
+              <div class="field">
+                <label>YouTube API Key</label>
+                <input value="••••••••••••••••••••" readonly />
+                <span style="color:var(--pink-sub);font-size:12px;">可选。填写后 YouTube 搜索会使用 YouTube Data API v3。</span>
+              </div>
+              <div class="field">
+                <label>网易云 API 地址</label>
+                <input value="http://localhost:3000" readonly />
+              </div>
+              <div class="field">
+                <label>网易云 Cookie</label>
+                <textarea readonly></textarea>
+                <span style="color:var(--pink-sub);font-size:12px;">可选。登录网页版后手动复制 Cookie，会员歌曲会更容易拿到播放链接。</span>
+              </div>
+              <div class="settings-actions">
+                <button type="button" onclick="showToast('检测 Cookie')">检测 Cookie</button>
+                <button type="button" onclick="showToast('检测我喜欢的音乐')">检测我喜欢的音乐</button>
+                <button type="button" onclick="showToast('分析我的音乐口味')">分析我的音乐口味</button>
+                <button type="button" onclick="showToast('清空音乐口味')">清空音乐口味</button>
+                <button type="button" onclick="showToast('清空 Cookie')">清空 Cookie</button>
+              </div>
+              <div class="field">
+                <label>OpenWeather API Key</label>
+                <input value="••••••••••••••••••••" readonly />
+              </div>
+              <div class="field">
+                <label>默认城市</label>
+                <select aria-label="默认城市">
+                  <option>Guangzhou</option>
+                  <option>Beijing</option>
+                  <option>Shanghai</option>
+                </select>
+                <span style="color:var(--pink-sub);font-size:12px;">可以手动输入城市，也可以从候选里选择。</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="settings-panel">
+            <p class="section-label">本地数据</p>
+            <p class="settings-panel__intro">清空对话只会删除聊天消息；情绪花园和用户画像会保留。</p>
+            <div class="settings-actions">
+              <button type="button" onclick="showToast('已导出 soulecho-backup.json')">导出数据</button>
+              <button type="button" onclick="showToast('请选择备份 JSON')">导入数据</button>
+              <button class="danger-pill" type="button" onclick="showToast('已触发清空对话历史确认')">清空对话历史</button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-healing">
+      <div class="app-surface is-healing">
+        <header class="app-header">
+          <div class="title-block">
+            <small>SoulEcho</small>
+            <h1>疗愈空间 · 肝 · 角调</h1>
+          </div>
+          <button class="back-btn" type="button" onclick="completeHealing()" style="color:var(--purple-text);">退出</button>
+        </header>
+
+        <div class="body-wrap">
+          <div class="healing-stage" aria-label="当前疗愈脏器：肝 · 角调">
+            <img class="healing-body" src="../public/healing-assets/whole.png" alt="身体与五脏轮廓" draggable="false" />
+            <img class="healing-organ" src="../public/healing-assets/liver.png" alt="肝 · 角调" draggable="false" />
+            <aside class="organ-label-card">
+              <strong>肝 · 角调</strong>
+              <span>疏展、松开压着的火气</span>
+            </aside>
+          </div>
+          <div class="organ-tags">
+            <div class="organ-tag">心 · 火</div>
+            <div class="organ-tag">肝 · 木</div>
+            <div class="organ-tag">肾 · 水</div>
+          </div>
+        </div>
+
+        <section class="healing-now">
+          <small>正在播放</small>
+          <h2>流筋</h2>
+          <div style="color:var(--purple-sub);font-size:14px;">丁承运</div>
+          <div class="healing-progress">
+            <span>0:11</span><div class="bar"><span></span></div><span>20:56</span>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <aside class="side-panel">
+    <section class="brief">
+      <h2>SoulEcho 主要功能</h2>
+      <p>这是一款以 AI 陪伴、音乐疗愈和情绪复盘为核心的 PWA。PRD 负责完整需求说明，这里用于快速理解原型覆盖的产品能力。</p>
+      <div class="feature-list">
+        <div class="feature-item"><b>AI 伴侣 momo</b><span>通过自然对话承接用户情绪，并根据上下文给出陪伴式回应。</span></div>
+        <div class="feature-item"><b>日常音乐推荐</b><span>用户主动点歌时，momo 按时间、偏好和场景返回歌单列表。</span></div>
+        <div class="feature-item"><b>五行疗愈邀请</b><span>用户表达压力、睡眠或情绪困扰时，momo 触发轻量疗愈入口。</span></div>
+        <div class="feature-item"><b>情绪花园</b><span>按天记录情绪状态，支持回看、修正和月度复盘。</span></div>
+        <div class="feature-item"><b>本地优先设置</b><span>API Key、音乐源、Cookie、城市和数据导入导出都以本地管理为主。</span></div>
+      </div>
+    </section>
+
+    <section class="nav-card">
+      <h2>页面导航</h2>
+      <div class="nav-list">
+        <button class="is-active" id="nav-chat" type="button" onclick="goTo('chat')">聊天页 <span>/</span></button>
+        <button id="nav-healing" type="button" onclick="goTo('healing')">疗愈空间 <span>/healing</span></button>
+        <button id="nav-garden" type="button" onclick="goTo('garden')">情绪花园 <span>/garden</span></button>
+        <button id="nav-settings" type="button" onclick="goTo('settings')">设置 <span>/settings</span></button>
+      </div>
+    </section>
+
+    <section class="flow-card">
+      <h2>可体验交互</h2>
+      <p>下面按真实使用场景说明手机原型里可以测试的交互行为。</p>
+      <div class="flow-list">
+        <div class="flow-item"><div class="flow-num">1</div><div><b>日常点歌场景</b><span>当用户在聊天页提出“给我来点歌”时，momo 返回日常歌单。可测试：<span class="interaction-action">点击歌单播放按钮</span>，展开播放器并切换播放内容。</span></div></div>
+        <div class="flow-item"><div class="flow-num">2</div><div><b>情绪低落场景</b><span>当用户表达压力大、睡不好时，momo 给出疗愈邀请。可测试：<span class="interaction-action">点击开始疗愈</span>，右下角播放器进入旋转播放状态。</span></div></div>
+        <div class="flow-item"><div class="flow-num">3</div><div><b>继续倾诉场景</b><span>用户暂时不想进入疗愈时，可以继续聊天。可测试：<span class="interaction-action">点击先聊聊</span>，聊天流下方追加 momo 回复。</span></div></div>
+        <div class="flow-item"><div class="flow-num">4</div><div><b>情绪复盘场景</b><span>用户回看某天情绪并发现 AI 识别不准时，可以手动修正。可测试：<span class="interaction-action">点击情绪花园日期</span>，弹出修正情绪卡片。</span></div></div>
+        <div class="flow-item"><div class="flow-num">5</div><div><b>后台播放场景</b><span>用户在任意页面需要查看当前音乐时，可以打开播放器。可测试：<span class="interaction-action">点击右下角音乐按钮</span>，展开播放器卡片。</span></div></div>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+  const pages = ["chat", "healing", "garden", "settings"];
+  let currentPage = "chat";
+
+  function goTo(page) {
+    if (!pages.includes(page) || page === currentPage) return;
+    document.getElementById(`screen-${currentPage}`).classList.remove("is-active");
+    document.getElementById(`nav-${currentPage}`).classList.remove("is-active");
+    document.getElementById(`screen-${page}`).classList.add("is-active");
+    document.getElementById(`nav-${page}`).classList.add("is-active");
+    currentPage = page;
+  }
+
+  function showToast(message) {
+    const toast = document.getElementById("toast");
+    toast.textContent = message;
+    toast.classList.add("is-show");
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(() => toast.classList.remove("is-show"), 2200);
+  }
+
+  function togglePlayer(force) {
+    const sheet = document.getElementById("player-sheet");
+    const shouldOpen = typeof force === "boolean" ? force : !sheet.classList.contains("is-open");
+    sheet.classList.toggle("is-open", shouldOpen);
+  }
+
+  function openPlayer(title, subtitle) {
+    document.getElementById("player-title").textContent = title;
+    document.getElementById("player-subtitle").textContent = subtitle;
+    togglePlayer(true);
+  }
+
+  function startHealingMusic() {
+    document.getElementById("player-title").textContent = "流筋";
+    document.getElementById("player-subtitle").textContent = "丁承运 · 肝 · 角调";
+    document.getElementById("floating-player").classList.add("is-playing");
+    showToast("疗愈音乐已开始播放");
+  }
+
+  function continueChatAfterInvite() {
+    document.getElementById("after-invite-reply").style.display = "grid";
+    showToast("momo 继续陪你聊");
+  }
+
+  function completeHealing() {
+    showToast("疗愈完成，momo 会回到聊天里继续接住你");
+    setTimeout(() => goTo("chat"), 650);
+  }
+
+  function openEditor(title) {
+    document.querySelectorAll(".day").forEach((day) => day.classList.remove("is-selected"));
+    event.currentTarget.classList.add("is-selected");
+    document.getElementById("editor-title").textContent = title;
+    document.getElementById("editor-card").classList.add("is-open");
+  }
+
+  function openGardenCell(cell, date, emotion) {
+    document.querySelectorAll(".garden-cell").forEach((item) => item.classList.remove("is-selected"));
+    cell.classList.add("is-selected");
+    document.getElementById("modal-date").textContent = date;
+    document.getElementById("modal-current").textContent = `当前：${emotion}`;
+    document.querySelectorAll(".emotion-card").forEach((item) => {
+      item.classList.toggle("is-active", item.querySelector("b").textContent === emotion);
+    });
+    document.getElementById("garden-modal").classList.add("is-open");
+  }
+
+  function closeGardenModal() {
+    document.getElementById("garden-modal").classList.remove("is-open");
+  }
+
+  function selectEmotionCard(button, emotion) {
+    button.parentElement.querySelectorAll(".emotion-card").forEach((item) => item.classList.remove("is-active"));
+    button.classList.add("is-active");
+    document.getElementById("modal-current").textContent = `当前：${emotion}`;
+  }
+
+  function saveGardenCorrection() {
+    showToast("已保存这一天的情绪修正");
+    closeGardenModal();
+  }
+
+  function selectEmotion(button) {
+    button.parentElement.querySelectorAll("button").forEach((item) => item.classList.remove("is-active"));
+    button.classList.add("is-active");
+    showToast("已更新这一天的情绪标签");
+  }
+
+  function selectChoice(button) {
+    button.parentElement.querySelectorAll("button").forEach((item) => item.classList.remove("is-active"));
+    button.classList.add("is-active");
+    showToast("设置已自动保存");
+  }
+</script>
+</body>
+</html>
